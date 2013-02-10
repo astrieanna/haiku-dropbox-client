@@ -3,6 +3,7 @@ import locale
 import os
 import pprint
 import shlex
+import pickle
 
 from dropbox import client, rest, session
 
@@ -62,10 +63,18 @@ class DropboxTerm(cmd.Cmd):
             self.current_path += "/" + path
 
     @command(login_required=False)
-    def do_login(self):
+    def do_login1(self):
         """log in to a Dropbox account"""
         try:
             self.sess.link()
+        except rest.ErrorResponse, e:
+            self.stdout.write('Error: %s\n' % str(e))
+
+    @command(login_required=False)
+    def do_login2(self):
+        """log in to a Dropbox account, step 2"""
+        try:
+            self.sess.link2()
         except rest.ErrorResponse, e:
             self.stdout.write('Error: %s\n' % str(e))
 
@@ -211,11 +220,15 @@ class StoredSession(session.DropboxSession):
 
     def link(self):
         request_token = self.obtain_request_token()
+        with open('entry.pickle', 'wb') as f:
+            pickle.dump((request_token.key, request_token.secret), f)
         url = self.build_authorize_url(request_token)
-        print "url:", url
-        print "Please authorize in the browser. After you're done, press enter."
-        raw_input()
+        print url
 
+    def link2(self):
+        with open('entry.pickle', 'rb') as f:
+            (akey,asecret) = pickle.load(f)
+            request_token = session.OAuthToken(akey,asecret)
         self.obtain_access_token(request_token)
         self.write_creds(self.token)
 

@@ -5,7 +5,7 @@ def main():
         exit("You need to set your APP_KEY and APP_SECRET!")
     term = DropboxTerm(APP_KEY, APP_SECRET)
     #term.cmdloop()
-    term.do_login1()
+    term.do_login2()
 
 if __name__ == '__main__':
     main()
