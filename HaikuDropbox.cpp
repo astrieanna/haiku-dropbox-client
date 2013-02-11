@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-main()
+int
+run_script(char *cmd)
 {
-  char *cmd = "python db_ls.py";
   char buf[BUFSIZ];
   FILE *ptr;
 
@@ -12,4 +12,10 @@ main()
       (void) printf("RAWR%s", buf);
   (void) pclose(ptr);
   return 0;
+}
+
+int
+main()
+{
+  run_script("python db_ls.py");
 }
