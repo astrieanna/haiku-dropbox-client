@@ -4,6 +4,7 @@ import os
 import pprint
 import shlex
 import pickle
+import sys
 
 from dropbox import client, rest, session
 
@@ -206,7 +207,7 @@ class StoredSession(session.DropboxSession):
         try:
             stored_creds = open(self.TOKEN_FILE).read()
             self.set_token(*stored_creds.split('|'))
-            print "[loaded access token]"
+            print >> sys.stderr, "[loaded access token]"
         except IOError:
             pass # don't worry if it's not there
 
