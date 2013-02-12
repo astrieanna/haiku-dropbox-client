@@ -9,28 +9,9 @@
 #include <Directory.h>
 #include <NodeMonitor.h>
 
-enum
-{
-  M_BUTTON_CLICKED = 'btcl'
-};
-
 App::App(void)
   : BApplication("application/x-vnd.lh-MyDropboxClient")
 {
-  fCount = 0;
-
-  BRect frame(100,100,500,400);
-  myWindow = new BWindow(frame,"Dropbox FTW"
-                  , B_TITLED_WINDOW
-                  , B_ASYNCHRONOUS_CONTROLS
-                   | B_QUIT_ON_WINDOW_CLOSE);
-
-  BButton *button = new BButton(BRect(10,10,11,11),"button","Click me!"
-                                , new BMessage(M_BUTTON_CLICKED));
-  button->SetTarget(this);
-  button->ResizeToPreferred();
-  myWindow->AddChild(button);
-
   //start watching ~/Dropbox folder
   BDirectory dir("/boot/home/Dropbox");
   node_ref nref;
@@ -41,8 +22,6 @@ App::App(void)
     if(err != B_OK)
       printf("Watch Node: Not OK\n");
   }
-
-  myWindow->Show();
 }
 
 void
@@ -50,18 +29,16 @@ App::MessageReceived(BMessage *msg)
 {
   switch(msg->what)
   {
-    case M_BUTTON_CLICKED:
-    {
-      fCount++;
-      BString labelString("Clicks:");
-      labelString << fCount;
-      myWindow->SetTitle(labelString.String());
-      break;
-    }
     case B_NODE_MONITOR:
     {
-      myWindow->SetTitle("ALLLERT!");
       printf("Received Node Monitor Alert\n");
+      status_t err;
+      int32 opcode;
+      err = msg->FindInt32("opcode",&opcode);
+      if(err == B_OK)
+      {
+        printf("what:%d\topcode:%d\n",msg->what, opcode);
+      }
       break;
     }
     default:
