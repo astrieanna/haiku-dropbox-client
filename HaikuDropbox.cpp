@@ -6,6 +6,8 @@
 #include <Button.h>
 #include <View.h>
 #include <String.h>
+#include <Directory.h>
+#include <NodeMonitor.h>
 
 enum
 {
@@ -29,6 +31,17 @@ App::App(void)
   button->ResizeToPreferred();
   myWindow->AddChild(button);
 
+  //start watching ~/Dropbox folder
+  BDirectory dir("~/Dropbox");
+  node_ref nref;
+  status_t err;
+  if(dir.InitCheck() == B_OK){
+    dir.GetNodeRef(&nref);
+    err = watch_node(&nref, B_WATCH_DIRECTORY, this);
+    if(err != B_OK)
+      printf("Watch Node: Not OK\n");
+  }
+
   myWindow->Show();
 }
 
@@ -43,6 +56,11 @@ App::MessageReceived(BMessage *msg)
       BString labelString("Clicks:");
       labelString << fCount;
       myWindow->SetTitle(labelString.String());
+      break;
+    }
+    case B_NODE_MONITOR:
+    {
+      printf("Received Node Monitor Alert");
       break;
     }
     default:
@@ -70,9 +88,12 @@ run_script(char *cmd)
 int
 main(void)
 {
+  //Haiku make window code
   App *app = new App();
+
+  //run some Dropbox code
+  run_script("python db_ls.py");
   app->Run();
   delete app;
-  run_script("python db_ls.py");
   return 0;
 }
