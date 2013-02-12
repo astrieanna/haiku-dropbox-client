@@ -32,12 +32,12 @@ App::App(void)
   myWindow->AddChild(button);
 
   //start watching ~/Dropbox folder
-  BDirectory dir("~/Dropbox");
+  BDirectory dir("/boot/home/Dropbox");
   node_ref nref;
   status_t err;
   if(dir.InitCheck() == B_OK){
     dir.GetNodeRef(&nref);
-    err = watch_node(&nref, B_WATCH_DIRECTORY, this);
+    err = watch_node(&nref, B_WATCH_DIRECTORY, BMessenger(this));
     if(err != B_OK)
       printf("Watch Node: Not OK\n");
   }
@@ -60,11 +60,13 @@ App::MessageReceived(BMessage *msg)
     }
     case B_NODE_MONITOR:
     {
-      printf("Received Node Monitor Alert");
+      myWindow->SetTitle("ALLLERT!");
+      printf("Received Node Monitor Alert\n");
       break;
     }
     default:
     {
+      printf("default msg\n");
       BApplication::MessageReceived(msg);
       break;
     }
