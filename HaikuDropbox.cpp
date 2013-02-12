@@ -38,6 +38,28 @@ App::MessageReceived(BMessage *msg)
       if(err == B_OK)
       {
         printf("what:%d\topcode:%d\n",msg->what, opcode);
+        switch(opcode)
+        {
+          case B_ENTRY_CREATED:
+          {
+            printf("NEW FILE\n");
+            break;
+          }
+          case B_ENTRY_MOVED:
+          {
+            printf("MOVED FILE\n");
+            break;
+          }
+          case B_ENTRY_REMOVED:
+          {
+            printf("DELETED FILE\n");
+            break;
+          }
+          default:
+          {
+            printf("default case opcode...\n");
+          }
+        }
       }
       break;
     }
