@@ -45,8 +45,10 @@ delete_file_on_dropbox(char * filepath)
 void
 add_file_to_dropbox(const char * filepath)
 {
-  BString s;
-  s << "python db_put.py " << BString(filepath) << " " << BString(filepath);
+  BString s, dbfp;
+  dbfp = BString(filepath);
+  dbfp.RemoveFirst("/boot/home/Dropbox/");
+  s << "python db_put.py " << BString(filepath) << " " << dbfp;
   run_script(s.String());
 }
 
