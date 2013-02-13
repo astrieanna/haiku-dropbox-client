@@ -20,6 +20,19 @@ App::App(void)
   }
 }
 
+int
+run_script(char *cmd)
+{
+  char buf[BUFSIZ];
+  FILE *ptr;
+
+  if ((ptr = popen(cmd, "r")) != NULL)
+    while (fgets(buf, BUFSIZ, ptr) != NULL)
+      (void) printf("RAWR%s", buf);
+  (void) pclose(ptr);
+  return 0;
+}
+
 void
 App::MessageReceived(BMessage *msg)
 {
@@ -39,6 +52,7 @@ App::MessageReceived(BMessage *msg)
           case B_ENTRY_CREATED:
           {
             printf("NEW FILE\n");
+            run_script("python db_ls.py");
             break;
           }
           case B_ENTRY_MOVED:
@@ -68,28 +82,12 @@ App::MessageReceived(BMessage *msg)
   }
 }
 
-
-int
-run_script(char *cmd)
-{
-  char buf[BUFSIZ];
-  FILE *ptr;
-
-  if ((ptr = popen(cmd, "r")) != NULL)
-    while (fgets(buf, BUFSIZ, ptr) != NULL)
-      (void) printf("RAWR%s", buf);
-  (void) pclose(ptr);
-  return 0;
-}
-
 int
 main(void)
 {
   //Haiku make window code
   App *app = new App();
 
-  //run some Dropbox code
-  run_script("python db_ls.py");
   app->Run();
   delete app;
   return 0;
