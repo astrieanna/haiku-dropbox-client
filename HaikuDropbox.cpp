@@ -2,10 +2,6 @@
 #include <stdlib.h>
 
 #include "App.h"
-#include <Window.h>
-#include <Button.h>
-#include <View.h>
-#include <String.h>
 #include <Directory.h>
 #include <NodeMonitor.h>
 
