@@ -4,6 +4,9 @@
 #include "App.h"
 #include <Directory.h>
 #include <NodeMonitor.h>
+#include <Entry.h>
+#include <Path.h>
+#include <String.h>
 
 App::App(void)
   : BApplication("application/x-vnd.lh-MyDropboxClient")
@@ -21,7 +24,7 @@ App::App(void)
 }
 
 int
-run_script(char *cmd)
+run_script(const char *cmd)
 {
   char buf[BUFSIZ];
   FILE *ptr;
@@ -40,9 +43,11 @@ delete_file_on_dropbox(char * filepath)
 }
 
 void
-add_file_to_dropbox(char * filepath)
+add_file_to_dropbox(const char * filepath)
 {
-  run_script("python db_ls.py");
+  BString s;
+  s << "python db_put.py " << BString(filepath) << " " << BString(filepath);
+  run_script(s.String());
 }
 
 void
@@ -71,7 +76,16 @@ App::MessageReceived(BMessage *msg)
           case B_ENTRY_CREATED:
           {
             printf("NEW FILE\n");
-            add_file_to_dropbox("hello");
+            entry_ref ref;
+            BPath path; 
+            const char * name;
+            msg->FindInt32("device",&ref.device);
+            msg->FindInt64("directory",&ref.directory);
+            msg->FindString("name",&name);
+            ref.set_name(name);
+            BEntry new_file = BEntry(&ref);
+            new_file.GetPath(&path);
+            add_file_to_dropbox(path.Path());
             break;
           }
           case B_ENTRY_MOVED:
