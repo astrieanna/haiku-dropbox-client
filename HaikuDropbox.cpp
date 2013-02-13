@@ -34,6 +34,25 @@ run_script(char *cmd)
 }
 
 void
+delete_file_on_dropbox(char * filepath)
+{
+  run_script("python db_ls.py");
+}
+
+void
+add_file_to_dropbox(char * filepath)
+{
+  run_script("python db_ls.py");
+}
+
+void
+moved_file(BMessage *msg) 
+{
+  //is this file being move into or out of ~/Dropbox?
+  run_script("python db_ls.py");
+}
+
+void
 App::MessageReceived(BMessage *msg)
 {
   switch(msg->what)
@@ -52,17 +71,19 @@ App::MessageReceived(BMessage *msg)
           case B_ENTRY_CREATED:
           {
             printf("NEW FILE\n");
-            run_script("python db_ls.py");
+            add_file_to_dropbox("hello");
             break;
           }
           case B_ENTRY_MOVED:
           {
             printf("MOVED FILE\n");
+            moved_file(msg);
             break;
           }
           case B_ENTRY_REMOVED:
           {
             printf("DELETED FILE\n");
+            delete_file_on_dropbox("hi");
             break;
           }
           default:
