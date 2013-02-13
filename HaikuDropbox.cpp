@@ -39,18 +39,42 @@ run_script(const char *cmd)
 void
 delete_file_on_dropbox(char * filepath)
 {
-  run_script("python db_ls.py");
+  BString s, dbfp;
+  s = BString(filepath);
+  s.RemoveFirst("/boot/home/Dropbox");
+  dbfp << "python db_rm.py " << s;
+  run_script(dbfp);
+}
+
+BString local_to_db_filepath(const char * local_path)
+{
+  BString s;
+  s = BString(local_path);
+  s.RemoveFirst("/boot/home/Dropbox/");
+  return s;
 }
 
 void
 add_file_to_dropbox(const char * filepath)
 {
   BString s, dbfp;
-  dbfp = BString(filepath);
-  dbfp.RemoveFirst("/boot/home/Dropbox/");
+  dbfp = local_to_db_filepath(filepath);
   s << "python db_put.py " << BString(filepath) << " " << dbfp;
+  printf("local filepath:%s\n",filepath);
+  printf("dropbox filepath:%s\n",dbfp.String());
   run_script(s.String());
 }
+
+void
+add_folder_to_dropbox(const char * filepath)
+{
+  BString s;
+  s << "python db_mkdir.py " << local_to_db_filepath(filepath);
+  printf("local filepath: %s\n", filepath);
+  printf("db filepath: %s\n", local_to_db_filepath(filepath).String());
+  run_script(s.String());
+}
+
 
 void
 moved_file(BMessage *msg) 
@@ -84,6 +108,7 @@ App::MessageReceived(BMessage *msg)
             msg->FindInt32("device",&ref.device);
             msg->FindInt64("directory",&ref.directory);
             msg->FindString("name",&name);
+            printf("name:%s\n",name);
             ref.set_name(name);
             BEntry new_file = BEntry(&ref);
             new_file.GetPath(&path);
@@ -99,6 +124,10 @@ App::MessageReceived(BMessage *msg)
           case B_ENTRY_REMOVED:
           {
             printf("DELETED FILE\n");
+            //node_ref nref;
+            //msg->FindInt32("device",&nref.device);
+            //msg->FindInt64("node",&nref.node);
+            //BNode node = BNode(&nref);
             delete_file_on_dropbox("hi");
             break;
           }
