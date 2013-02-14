@@ -167,11 +167,11 @@ App::MessageReceived(BMessage *msg)
               }
               else
               {
-                printf("OH NO!\t%d\n",entryPtr->InitCheck());
-                printf("OK = %d\n", B_OK);
-                printf("Entry Not Found = %d\n",B_ENTRY_NOT_FOUND);
-                printf("Bad Value = %d\n",B_BAD_VALUE);
-                printf("No Init = %d\n", B_NO_INIT);
+                printf("OH NO!\t%lu\n",entryPtr->InitCheck());
+                printf("OK = %lu\n", B_OK);
+                printf("Entry Not Found = %lu\n",B_ENTRY_NOT_FOUND);
+                printf("Bad Value = %lu\n",B_BAD_VALUE);
+                printf("No Init = %lu\n", B_NO_INIT);
                 return;
               }
 
