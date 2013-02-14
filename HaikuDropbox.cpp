@@ -26,11 +26,24 @@ App::App(void)
 
   // record each file in the folder so that we know the name on deletion
   BEntry entry;
+  status_t err2;
   err = dir.GetNextEntry(&entry);
-  while(err == B_OK){
+  while(err == B_OK)
+  {
     err = dir.GetNextEntry(&entry);
     this->tracked_files.AddItem((void*)&entry);
+    err2 = entry.GetNodeRef(&nref);
+    if(err2 == B_OK)
+    {
+      err2 = watch_node(&nref, B_WATCH_STAT, be_app_messenger);
+      if(err2 != B_OK)
+        printf("Watch file Node: Not OK\n");
+    }
   }
+
+  //watch each file for edits
+  
+
 }
 
 int
@@ -47,7 +60,7 @@ run_script(const char *cmd)
 }
 
 void
-delete_file_on_dropbox(char * filepath)
+delete_file_on_dropbox(const char * filepath)
 {
   BString s, dbfp;
   s = BString(filepath);
@@ -94,6 +107,12 @@ moved_file(BMessage *msg)
 }
 
 void
+update_file_in_dropbox(const char * filepath)
+{
+  add_file_to_dropbox(filepath); //just put it?
+}
+
+void
 App::MessageReceived(BMessage *msg)
 {
   switch(msg->what)
@@ -134,12 +153,59 @@ App::MessageReceived(BMessage *msg)
           case B_ENTRY_REMOVED:
           {
             printf("DELETED FILE\n");
-            //node_ref nref;
-            //msg->FindInt32("device",&nref.device);
-            //msg->FindInt64("node",&nref.node);
-            //BNode node = BNode(&nref);
-            delete_file_on_dropbox("hi");
+            node_ref nref, cref;
+            msg->FindInt32("device",&nref.device);
+            msg->FindInt64("node",&nref.node);
+            BEntry *entryPtr;
+            int32 ktr = 0;
+            int32 limit = this->tracked_files.CountItems();
+            while((entryPtr = (BEntry *)this->tracked_files.ItemAt(ktr++))&&(ktr<limit))
+            {
+              if(entryPtr->InitCheck() == B_OK)
+              {
+                entryPtr->GetNodeRef(&cref);
+              }
+              else
+              {
+                printf("OH NO!\t%d\n",entryPtr->InitCheck());
+                printf("OK = %d\n", B_OK);
+                printf("Entry Not Found = %d\n",B_ENTRY_NOT_FOUND);
+                printf("Bad Value = %d\n",B_BAD_VALUE);
+                printf("No Init = %d\n", B_NO_INIT);
+                return;
+              }
+
+              if(nref == cref)
+              {
+                BPath path;
+                entryPtr->GetPath(&path);
+                delete_file_on_dropbox(path.Path());
+                break; //break out of loop
+              }
+            }
             break;
+          }
+          case B_STAT_CHANGED:
+          {
+            printf("EDITED FILE\n");
+            node_ref nref1,nref2;
+            msg->FindInt32("device",&nref1.device);
+            msg->FindInt64("node",&nref1.node);
+            BEntry * entryPtr;
+            int32 ktr = 0;
+            while((entryPtr = (BEntry *)this->tracked_files.ItemAt(ktr++)))
+
+            {
+              entryPtr->GetNodeRef(&nref2);
+              if(nref1 == nref2)
+              {
+                BPath path;
+                entryPtr->GetPath(&path);
+                update_file_in_dropbox(path.Path());
+                break;
+              }
+            }
+            break; 
           }
           default:
           {
