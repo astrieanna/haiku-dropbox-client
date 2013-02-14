@@ -21,6 +21,16 @@ App::App(void)
     if(err != B_OK)
       printf("Watch Node: Not OK\n");
   }
+
+  // track each file in the folder for edits
+
+  // record each file in the folder so that we know the name on deletion
+  BEntry entry;
+  err = dir.GetNextEntry(&entry);
+  while(err == B_OK){
+    err = dir.GetNextEntry(&entry);
+    this->tracked_files.AddItem((void*)&entry);
+  }
 }
 
 int
