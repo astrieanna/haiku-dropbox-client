@@ -28,12 +28,11 @@ App::App(void)
   }
 
   // record each file in the folder so that we know the name on deletion
-  BEntry entry;
+  BEntry entry = new BEntry;
   status_t err2;
   err = dir.GetNextEntry(&entry);
   while(err == B_OK) //loop over files
   {
-    err = dir.GetNextEntry(&entry);
     this->tracked_files.AddItem((void*)&entry); //add file to my list
     err2 = entry.GetNodeRef(&nref);
     if(err2 == B_OK)
@@ -42,8 +41,10 @@ App::App(void)
       if(err2 != B_OK)
         printf("Watch file Node: Not OK\n");
     }
+    entry = new BEntry;
+    err = dir.GetNextEntry(&entry);
   }
-
+  //delete that last BEntry...
 }
 
 /*
@@ -196,20 +197,7 @@ App::MessageReceived(BMessage *msg)
             int32 limit = this->tracked_files.CountItems();
             while((entryPtr = (BEntry *)this->tracked_files.ItemAt(ktr++))&&(ktr<limit))
             {
-              if(entryPtr->InitCheck() == B_OK)
-              {
-                entryPtr->GetNodeRef(&cref);
-              }
-              else
-              {
-                printf("OH NO!\t%lu\n",entryPtr->InitCheck());
-                printf("OK = %lu\n", B_OK);
-                printf("Entry Not Found = %lu\n",B_ENTRY_NOT_FOUND);
-                printf("Bad Value = %lu\n",B_BAD_VALUE);
-                printf("No Init = %lu\n", B_NO_INIT);
-                return;
-              }
-
+              entryPtr->GetNodeRef(&cref);
               if(nref == cref)
               {
                 BPath path;
