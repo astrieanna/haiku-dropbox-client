@@ -8,11 +8,16 @@
 #include <Path.h>
 #include <String.h>
 
+
+/*
+* Sets up the Node Monitoring for Dropbox folder and contents
+* and creates data structure for determining which files are deleted or edited
+*/
 App::App(void)
   : BApplication("application/x-vnd.lh-MyDropboxClient")
 {
-  //start watching ~/Dropbox folder
-  BDirectory dir("/boot/home/Dropbox");
+  //start watching ~/Dropbox folder contents (create, delete, move)
+  BDirectory dir("/boot/home/Dropbox"); //don't use ~ here
   node_ref nref;
   status_t err;
   if(dir.InitCheck() == B_OK){
@@ -22,30 +27,28 @@ App::App(void)
       printf("Watch Node: Not OK\n");
   }
 
-  // track each file in the folder for edits
-
   // record each file in the folder so that we know the name on deletion
   BEntry entry;
   status_t err2;
   err = dir.GetNextEntry(&entry);
-  while(err == B_OK)
+  while(err == B_OK) //loop over files
   {
     err = dir.GetNextEntry(&entry);
-    this->tracked_files.AddItem((void*)&entry);
+    this->tracked_files.AddItem((void*)&entry); //add file to my list
     err2 = entry.GetNodeRef(&nref);
     if(err2 == B_OK)
     {
-      err2 = watch_node(&nref, B_WATCH_STAT, be_app_messenger);
+      err2 = watch_node(&nref, B_WATCH_STAT, be_app_messenger); //watch for edits
       if(err2 != B_OK)
         printf("Watch file Node: Not OK\n");
     }
   }
 
-  //watch each file for edits
-  
-
 }
 
+/*
+* Runs a command in the terminal, given the string you'd type
+*/
 int
 run_script(const char *cmd)
 {
@@ -59,6 +62,10 @@ run_script(const char *cmd)
   return 0;
 }
 
+/*
+* Given a local file path,
+* call the script to delete the corresponding Dropbox file
+*/
 void
 delete_file_on_dropbox(const char * filepath)
 {
@@ -69,6 +76,10 @@ delete_file_on_dropbox(const char * filepath)
   run_script(dbfp);
 }
 
+/*
+* Convert a local absolute filepath to a Dropbox one
+* by removing the <path to Dropbox> from the beginning
+*/
 BString local_to_db_filepath(const char * local_path)
 {
   BString s;
@@ -77,6 +88,10 @@ BString local_to_db_filepath(const char * local_path)
   return s;
 }
 
+/*
+* Given the local file path of a new file,
+* run the script to upload it to Dropbox
+*/
 void
 add_file_to_dropbox(const char * filepath)
 {
@@ -88,6 +103,10 @@ add_file_to_dropbox(const char * filepath)
   run_script(s.String());
 }
 
+/*
+* Given the local file path of a new folder,
+* run the script to mkdir on Dropbox
+*/
 void
 add_folder_to_dropbox(const char * filepath)
 {
@@ -98,20 +117,36 @@ add_folder_to_dropbox(const char * filepath)
   run_script(s.String());
 }
 
-
+/*
+* TODO
+* Given a "file/folder moved" message,
+* figure out whether to call add or delete
+* and with what file path
+* and then call add/delete.
+*/
 void
-moved_file(BMessage *msg) 
+moved_file(BMessage *msg)
 {
   //is this file being move into or out of ~/Dropbox?
   run_script("python db_ls.py");
 }
 
+/*
+* Given a local file path,
+* update the corresponding file on Dropbox
+*/
 void
 update_file_in_dropbox(const char * filepath)
 {
   add_file_to_dropbox(filepath); //just put it?
 }
 
+/*
+* Message Handling Function
+* If it's a node monitor message,
+* then figure out what to do based on it.
+* Otherwise, let BApplication handle it.
+*/
 void
 App::MessageReceived(BMessage *msg)
 {
@@ -132,7 +167,7 @@ App::MessageReceived(BMessage *msg)
           {
             printf("NEW FILE\n");
             entry_ref ref;
-            BPath path; 
+            BPath path;
             const char * name;
             msg->FindInt32("device",&ref.device);
             msg->FindInt64("directory",&ref.directory);
@@ -194,7 +229,6 @@ App::MessageReceived(BMessage *msg)
             BEntry * entryPtr;
             int32 ktr = 0;
             while((entryPtr = (BEntry *)this->tracked_files.ItemAt(ktr++)))
-
             {
               entryPtr->GetNodeRef(&nref2);
               if(nref1 == nref2)
@@ -205,7 +239,7 @@ App::MessageReceived(BMessage *msg)
                 break;
               }
             }
-            break; 
+            break;
           }
           default:
           {
@@ -227,10 +261,13 @@ App::MessageReceived(BMessage *msg)
 int
 main(void)
 {
-  //Haiku make window code
+  //set up application (watch Dropbox folder & contents)
   App *app = new App();
 
+  //start the application
   app->Run();
+
+  //clean up now that we're shutting down
   delete app;
   return 0;
 }
