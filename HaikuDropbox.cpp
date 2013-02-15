@@ -28,13 +28,13 @@ App::App(void)
   }
 
   // record each file in the folder so that we know the name on deletion
-  BEntry entry = new BEntry;
+  BEntry *entry = new BEntry;
   status_t err2;
-  err = dir.GetNextEntry(&entry);
+  err = dir.GetNextEntry(entry);
   while(err == B_OK) //loop over files
   {
-    this->tracked_files.AddItem((void*)&entry); //add file to my list
-    err2 = entry.GetNodeRef(&nref);
+    this->tracked_files.AddItem((void*)entry); //add file to my list
+    err2 = entry->GetNodeRef(&nref);
     if(err2 == B_OK)
     {
       err2 = watch_node(&nref, B_WATCH_STAT, be_app_messenger); //watch for edits
@@ -42,7 +42,7 @@ App::App(void)
         printf("Watch file Node: Not OK\n");
     }
     entry = new BEntry;
-    err = dir.GetNextEntry(&entry);
+    err = dir.GetNextEntry(entry);
   }
   //delete that last BEntry...
 }
