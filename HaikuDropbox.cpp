@@ -70,10 +70,12 @@ run_script(const char *cmd)
 void
 delete_file_on_dropbox(const char * filepath)
 {
+  printf("Telling Dropbox to Delete\n");
   BString s, dbfp;
   s = BString(filepath);
   s.RemoveFirst("/boot/home/Dropbox");
   dbfp << "python db_rm.py " << s;
+  printf("%s\n",dbfp);
   run_script(dbfp);
 }
 
@@ -195,11 +197,15 @@ App::MessageReceived(BMessage *msg)
             BEntry *entryPtr;
             int32 ktr = 0;
             int32 limit = this->tracked_files.CountItems();
+            printf("About to loop\n");
             while((entryPtr = (BEntry *)this->tracked_files.ItemAt(ktr++))&&(ktr<limit))
             {
+              printf("In loop.\n");
               entryPtr->GetNodeRef(&cref);
+              printf("GotNodeRef\n");
               if(nref == cref)
               {
+                printf("Deleting it\n");
                 BPath path;
                 entryPtr->GetPath(&path);
                 delete_file_on_dropbox(path.Path());
