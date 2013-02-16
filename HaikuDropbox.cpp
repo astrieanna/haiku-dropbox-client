@@ -31,9 +31,12 @@ App::App(void)
   BEntry *entry = new BEntry;
   status_t err2;
   err = dir.GetNextEntry(entry);
+  BPath path;
   while(err == B_OK) //loop over files
   {
     this->tracked_files.AddItem((void*)entry); //add file to my list
+    entry->GetPath(&path);
+    printf("tracking: %s\n",path.Path());
     err2 = entry->GetNodeRef(&nref);
     if(err2 == B_OK)
     {
@@ -75,7 +78,7 @@ delete_file_on_dropbox(const char * filepath)
   s = BString(filepath);
   s.RemoveFirst("/boot/home/Dropbox");
   dbfp << "python db_rm.py " << s;
-  printf("%s\n",dbfp);
+  printf("%s\n",dbfp.String());
   run_script(dbfp);
 }
 
