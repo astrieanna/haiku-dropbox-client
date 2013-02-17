@@ -200,8 +200,8 @@ App::MessageReceived(BMessage *msg)
             BEntry *entryPtr;
             int32 ktr = 0;
             int32 limit = this->tracked_files.CountItems();
-            printf("About to loop\n");
-            while((entryPtr = (BEntry *)this->tracked_files.ItemAt(ktr++))&&(ktr<limit))
+            printf("About to loop %d times\n", limit);
+            while((entryPtr = (BEntry *)this->tracked_files.ItemAt(ktr))&&(ktr<limit))
             {
               printf("In loop.\n");
               entryPtr->GetNodeRef(&cref);
@@ -214,6 +214,7 @@ App::MessageReceived(BMessage *msg)
                 delete_file_on_dropbox(path.Path());
                 break; //break out of loop
               }
+              ktr++;
             }
             break;
           }
