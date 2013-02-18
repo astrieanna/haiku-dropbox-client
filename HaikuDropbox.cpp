@@ -32,14 +32,16 @@ App::App(void)
   BEntry *entry = new BEntry;
   status_t err2;
   err = dir.GetNextEntry(entry);
-  BPath path;
+  BPath *path;
   BFile *file;
   while(err == B_OK) //loop over files
   {
     file = new BFile(entry, B_READ_ONLY);
     this->tracked_files.AddItem((void*)(file)); //add file to my list
-    entry->GetPath(&path);
-    printf("tracking: %s\n",path.Path());
+    path = new BPath;
+    entry->GetPath(path);
+    printf("tracking: %s\n",path->Path());
+    this->tracked_filepaths.AddItem((void*)path); 
     err2 = entry->GetNodeRef(&nref);
     if(err2 == B_OK)
     {
@@ -212,9 +214,9 @@ App::MessageReceived(BMessage *msg)
               if(nref == cref)
               {
                 printf("Deleting it\n");
-                BPath path;
-                //entryPtr->GetPath(&path);
-                //delete_file_on_dropbox(path.Path());
+                BPath *path = (BPath*)this->tracked_filepaths.ItemAt(ktr);
+                printf("%s\n",path->Path());
+                delete_file_on_dropbox(path->Path());
                 break; //break out of loop
               }
               ktr++;

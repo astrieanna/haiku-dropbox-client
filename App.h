@@ -11,6 +11,7 @@ public:
   void MessageReceived(BMessage *msg);
 private:
   BList tracked_files; // BFile*
+  BList tracked_filepaths; //BPath*
 };
 
 #endif
