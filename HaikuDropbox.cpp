@@ -188,6 +188,12 @@ App::MessageReceived(BMessage *msg)
             BEntry new_file = BEntry(&ref);
             new_file.GetPath(&path);
             add_file_to_dropbox(path.Path());
+
+            BFile *file = new BFile(&new_file, B_READ_ONLY);
+            this->tracked_files.AddItem((void*)file);
+            BPath *path2 = new BPath;
+            new_file.GetPath(path2);
+            this->tracked_filepaths.AddItem((void*)path2);
             break;
           }
           case B_ENTRY_MOVED:
