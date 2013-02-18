@@ -223,6 +223,9 @@ App::MessageReceived(BMessage *msg)
                 BPath *path = (BPath*)this->tracked_filepaths.ItemAt(ktr);
                 printf("%s\n",path->Path());
                 delete_file_on_dropbox(path->Path());
+
+                this->tracked_files.RemoveItem(ktr);
+                this->tracked_filepaths.RemoveItem(ktr);
                 break; //break out of loop
               }
               ktr++;
