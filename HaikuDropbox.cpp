@@ -200,14 +200,14 @@ App::MessageReceived(BMessage *msg)
             node_ref nref, cref;
             msg->FindInt32("device",&nref.device);
             msg->FindInt64("node",&nref.node);
-            BFile *entryPtr;
+            BFile *filePtr;
             int32 ktr = 0;
             int32 limit = this->tracked_files.CountItems();
             printf("About to loop %d times\n", limit);
-            while((entryPtr = (BFile *)this->tracked_files.ItemAt(ktr))&&(ktr<limit))
+            while((filePtr = (BFile*)this->tracked_files.ItemAt(ktr))&&(ktr<limit))
             {
               printf("In loop.\n");
-              entryPtr->GetNodeRef(&cref);
+              filePtr->GetNodeRef(&cref);
               printf("GotNodeRef\n");
               if(nref == cref)
               {

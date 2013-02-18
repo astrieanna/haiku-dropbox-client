@@ -10,7 +10,7 @@ public:
   App(void);
   void MessageReceived(BMessage *msg);
 private:
-  BList tracked_files;
+  BList tracked_files; // BFile*
 };
 
 #endif
