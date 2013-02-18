@@ -149,6 +149,7 @@ moved_file(BMessage *msg)
 void
 update_file_in_dropbox(const char * filepath)
 {
+  printf("Putting %s to Dropbox.\n", filepath);
   add_file_to_dropbox(filepath); //just put it?
 }
 
@@ -238,16 +239,16 @@ App::MessageReceived(BMessage *msg)
             node_ref nref1,nref2;
             msg->FindInt32("device",&nref1.device);
             msg->FindInt64("node",&nref1.node);
-            BEntry * entryPtr;
+            BFile * filePtr;
             int32 ktr = 0;
-            while((entryPtr = (BEntry *)this->tracked_files.ItemAt(ktr++)))
+            while((filePtr = (BFile *)this->tracked_files.ItemAt(ktr++)))
             {
-              entryPtr->GetNodeRef(&nref2);
+              filePtr->GetNodeRef(&nref2);
               if(nref1 == nref2)
               {
-                BPath path;
-                entryPtr->GetPath(&path);
-                update_file_in_dropbox(path.Path());
+                BPath *path;
+                path = (BPath*)this->tracked_filepaths.ItemAt(ktr-1);
+                update_file_in_dropbox(path->Path());
                 break;
               }
             }
