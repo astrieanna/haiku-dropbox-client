@@ -7,6 +7,7 @@
 #include <Entry.h>
 #include <Path.h>
 #include <String.h>
+#include <File.h>
 
 
 /*
@@ -32,9 +33,11 @@ App::App(void)
   status_t err2;
   err = dir.GetNextEntry(entry);
   BPath path;
+  BFile *file;
   while(err == B_OK) //loop over files
   {
-    this->tracked_files.AddItem((void*)entry); //add file to my list
+    file = new BFile(entry, B_READ_ONLY);
+    this->tracked_files.AddItem((void*)(file)); //add file to my list
     entry->GetPath(&path);
     printf("tracking: %s\n",path.Path());
     err2 = entry->GetNodeRef(&nref);
@@ -197,11 +200,11 @@ App::MessageReceived(BMessage *msg)
             node_ref nref, cref;
             msg->FindInt32("device",&nref.device);
             msg->FindInt64("node",&nref.node);
-            BEntry *entryPtr;
+            BFile *entryPtr;
             int32 ktr = 0;
             int32 limit = this->tracked_files.CountItems();
             printf("About to loop %d times\n", limit);
-            while((entryPtr = (BEntry *)this->tracked_files.ItemAt(ktr))&&(ktr<limit))
+            while((entryPtr = (BFile *)this->tracked_files.ItemAt(ktr))&&(ktr<limit))
             {
               printf("In loop.\n");
               entryPtr->GetNodeRef(&cref);
@@ -210,8 +213,8 @@ App::MessageReceived(BMessage *msg)
               {
                 printf("Deleting it\n");
                 BPath path;
-                entryPtr->GetPath(&path);
-                delete_file_on_dropbox(path.Path());
+                //entryPtr->GetPath(&path);
+                //delete_file_on_dropbox(path.Path());
                 break; //break out of loop
               }
               ktr++;
