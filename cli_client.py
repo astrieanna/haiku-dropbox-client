@@ -107,6 +107,11 @@ class DropboxTerm(cmd.Cmd):
         """move/rename a file or directory"""
         self.api_client.file_move(self.current_path + "/" + from_path,
                                   self.current_path + "/" + to_path)
+    @command()
+    def do_delta(self, cursor):
+        """request remote changes"""
+        response = self.api_client.delta(cursor)
+        print response
 
     @command()
     def do_account_info(self):
