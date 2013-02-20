@@ -1,14 +1,22 @@
 import sys
 from cli_client import APP_KEY, APP_SECRET, DropboxTerm
 
-def main(cursor=None):
+def main():
     if APP_KEY == '' or APP_SECRET == '':
         exit("You need to set your APP_KEY and APP_SECRET!")
     term = DropboxTerm(APP_KEY, APP_SECRET)
 
-    term.do_delta(cursor)
+    try:
+      with open('delta.txt', 'r') as f:
+        cursor = f.read()
+    except IOError as e:
+      cursor = None
+    
+    new_cursor = term.do_delta(cursor)
 
-    print "Asked for the Delta!"
+    with open('delta.txt','w') as f:
+       f.write(new_cursor)
+    print new_cursor
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:

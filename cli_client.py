@@ -112,6 +112,7 @@ class DropboxTerm(cmd.Cmd):
         """request remote changes"""
         response = self.api_client.delta(cursor)
         print response
+        return response['cursor']
 
     @command()
     def do_account_info(self):
