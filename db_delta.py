@@ -16,7 +16,6 @@ def main():
 
     with open('delta.txt','w') as f:
        f.write(new_cursor)
-    print new_cursor
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:

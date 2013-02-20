@@ -110,8 +110,22 @@ class DropboxTerm(cmd.Cmd):
     @command()
     def do_delta(self, cursor):
         """request remote changes"""
+        def pretty_print_deltas(deltas):
+          for [n,d] in deltas:
+            #print "%s %s %s %s %s" % (n,d['is_dir'],d['path'],d['rev'],d['revision'])
+            if d == None:
+                print "REMOVE %s" % n
+            else:
+              if d['is_dir']:
+                start = 'FOLDER'
+              else:
+                start = 'FILE'
+              print "%s %s %s" % (start,d['path'],d['rev'])
+
         response = self.api_client.delta(cursor)
-        print response
+        if response['reset']:
+          print "RESET"
+        pretty_print_deltas(response['entries'])
         return response['cursor']
 
     @command()
