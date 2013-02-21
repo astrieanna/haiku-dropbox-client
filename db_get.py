@@ -11,5 +11,6 @@ def main(src,dest):
 if __name__ == '__main__':
     #get cmdline args...
     if len(sys.argv) != 3:
-        print "usage: python db_get.py <src> <dest>"
-    main(sys.argv[1],sys.argv[2])
+        print "usage: python db_get.py <remote src> <local dest>"
+    else:
+      main(sys.argv[1],sys.argv[2])
