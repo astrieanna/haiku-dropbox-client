@@ -41,6 +41,12 @@ parse_command(BString command)
   if(command.Compare("RESET\n") == 0)
   {
     printf("Burn Everything. 8D\n");
+    BEntry dbfolder = BEntry("/boot/home/Dropbox");
+    if(dbfolder.InitCheck() != B_OK)
+      printf("Bad Init\n");
+    status_t err = dbfolder.Remove();
+    printf("ERR: %s\n",strerror(err));
+    create_directory("/boot/home/Dropbox", 0x0777);
   }
   else if(command.Compare("FILE ",5) == 0)
   {
