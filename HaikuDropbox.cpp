@@ -54,6 +54,8 @@ parse_command(BString command)
     int last = command.FindLast(" ");
     command.CopyInto(path,7,last - 7);
     printf("create a folder at |%s|\n", path.String());
+    path.Prepend("/boot/home/Dropbox");
+    create_directory(path, 0x0777);
   }
   else if(command.Compare("REMOVE ",7) == 0)
   {
