@@ -60,8 +60,7 @@ get_next_line(BString *src, BString *dest)
   if(eol == B_ERROR)
     return B_ERROR;
 
-  src->CopyInto(*dest,0,eol+1);
-  src->Remove(0,eol+1);
+  src->MoveInto(*dest,0,eol+1);
   return B_OK;
 }
 
