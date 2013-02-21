@@ -38,9 +38,14 @@ parse_command(BString command)
   }
   else if(command.Compare("FILE ",5) == 0)
   {
-    BString path;
+    BString path, dirpath;
     command.CopyInto(path,5,command.FindLast(" ") - 5);
     printf("create a file at |%s|\n",path.String());
+    int32 split = path.FindLast("/");
+    path.CopyInto(dirpath,0,split);
+    if(dirpath != "")
+      create_directory(dirpath,0x0777);
+    BDirectory().CreateFile(BString("/boot/home/Dropbox/") << path,&BFile());
   }
   else if(command.Compare("FOLDER ",7) == 0)
   {
