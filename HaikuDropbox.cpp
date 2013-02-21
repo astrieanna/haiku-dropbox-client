@@ -63,7 +63,10 @@ App::App(void)
 {
   //ask Dropbox for deltas!
   BString *delta_commands = run_script("python db_delta.py");
-  (void) parse_command(delta_commands->String());
+  int32 index = delta_commands->FindFirst('\n');
+  BString line;
+  delta_commands->MoveInto(line,0,index);
+  (void) parse_command(line.String());
 
   //start watching ~/Dropbox folder contents (create, delete, move)
   BDirectory dir("/boot/home/Dropbox"); //don't use ~ here
