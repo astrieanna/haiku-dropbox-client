@@ -53,6 +53,16 @@ parse_command(const char* command)
   return 0;
 }
 
+int32
+get_next_line(BString *src, BString *dest)
+{
+  int32 eol = src->FindFirst('\n');
+  if(eol == B_ERROR)
+    return B_ERROR;
+
+  src->MoveInto(*dest,0,eol);
+  return B_OK;
+}
 
 /*
 * Sets up the Node Monitoring for Dropbox folder and contents
@@ -63,10 +73,9 @@ App::App(void)
 {
   //ask Dropbox for deltas!
   BString *delta_commands = run_script("python db_delta.py");
-  int32 index = delta_commands->FindFirst('\n');
   BString line;
-  delta_commands->MoveInto(line,0,index);
-  (void) parse_command(line.String());
+  if(get_next_line(delta_commands,&line) == B_OK)
+    (void) parse_command(line.String());
 
   //start watching ~/Dropbox folder contents (create, delete, move)
   BDirectory dir("/boot/home/Dropbox"); //don't use ~ here
