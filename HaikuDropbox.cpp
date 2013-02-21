@@ -9,6 +9,21 @@
 #include <String.h>
 #include <File.h>
 
+/*
+* Runs a command in the terminal, given the string you'd type
+*/
+int
+run_script(const char *cmd)
+{
+  char buf[BUFSIZ];
+  FILE *ptr;
+
+  if ((ptr = popen(cmd, "r")) != NULL)
+    while (fgets(buf, BUFSIZ, ptr) != NULL)
+      (void) printf("RAWR%s", buf);
+  (void) pclose(ptr);
+  return 0;
+}
 
 /*
 * Sets up the Node Monitoring for Dropbox folder and contents
@@ -17,6 +32,9 @@
 App::App(void)
   : BApplication("application/x-vnd.lh-MyDropboxClient")
 {
+  //ask Dropbox for deltas!
+  run_script("python db_delta.py");
+
   //start watching ~/Dropbox folder contents (create, delete, move)
   BDirectory dir("/boot/home/Dropbox"); //don't use ~ here
   node_ref nref;
@@ -53,22 +71,6 @@ App::App(void)
     err = dir.GetNextEntry(entry);
   }
   //delete that last BEntry...
-}
-
-/*
-* Runs a command in the terminal, given the string you'd type
-*/
-int
-run_script(const char *cmd)
-{
-  char buf[BUFSIZ];
-  FILE *ptr;
-
-  if ((ptr = popen(cmd, "r")) != NULL)
-    while (fgets(buf, BUFSIZ, ptr) != NULL)
-      (void) printf("RAWR%s", buf);
-  (void) pclose(ptr);
-  return 0;
 }
 
 /*
