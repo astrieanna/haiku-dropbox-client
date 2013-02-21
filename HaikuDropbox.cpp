@@ -60,7 +60,8 @@ get_next_line(BString *src, BString *dest)
   if(eol == B_ERROR)
     return B_ERROR;
 
-  src->MoveInto(*dest,0,eol);
+  src->CopyInto(*dest,0,eol+1);
+  src->Remove(0,eol+1);
   return B_OK;
 }
 
@@ -74,8 +75,10 @@ App::App(void)
   //ask Dropbox for deltas!
   BString *delta_commands = run_script("python db_delta.py");
   BString line;
-  if(get_next_line(delta_commands,&line) == B_OK)
+  while(get_next_line(delta_commands,&line) == B_OK)
+  {
     (void) parse_command(line.String());
+  }
 
   //start watching ~/Dropbox folder contents (create, delete, move)
   BDirectory dir("/boot/home/Dropbox"); //don't use ~ here
