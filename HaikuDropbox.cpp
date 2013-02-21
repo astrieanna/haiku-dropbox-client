@@ -26,14 +26,6 @@ run_script(const char *cmd)
   (void) pclose(ptr);
   return output;
 }
-/*
-enum {
-  DELETE_EVERYTHING;
-  CREATE_FOLDER;
-  CREATE_FILE;
-  DELETE_THIS;
-}
-*/
 
 int
 parse_command(BString command)
