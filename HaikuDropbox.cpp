@@ -12,18 +12,47 @@
 /*
 * Runs a command in the terminal, given the string you'd type
 */
-int
+BString*
 run_script(const char *cmd)
 {
   char buf[BUFSIZ];
   FILE *ptr;
+  BString *output = new BString;
 
   if ((ptr = popen(cmd, "r")) != NULL)
     while (fgets(buf, BUFSIZ, ptr) != NULL)
-      (void) printf("RAWR%s", buf);
+       output->Append(buf);
+
   (void) pclose(ptr);
+  return output;
+}
+/*
+enum {
+  DELETE_EVERYTHING;
+  CREATE_FOLDER;
+  CREATE_FILE;
+  DELETE_THIS;
+}
+*/
+
+int
+parse_command(const char* command)
+{
+  if(command[0] == 'R'
+    && command[1] == 'E'
+    && command[2] == 'S'
+    && command[3] == 'E'
+    && command[4] == 'T')
+  {
+    printf("Burn Everything. 8D\n");
+  }
+  else
+  {
+    printf("Something more specific.\n");
+  }
   return 0;
 }
+
 
 /*
 * Sets up the Node Monitoring for Dropbox folder and contents
@@ -33,7 +62,8 @@ App::App(void)
   : BApplication("application/x-vnd.lh-MyDropboxClient")
 {
   //ask Dropbox for deltas!
-  run_script("python db_delta.py");
+  BString *delta_commands = run_script("python db_delta.py");
+  (void) parse_command(delta_commands->String());
 
   //start watching ~/Dropbox folder contents (create, delete, move)
   BDirectory dir("/boot/home/Dropbox"); //don't use ~ here
