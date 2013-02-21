@@ -42,6 +42,18 @@ parse_command(BString command)
   {
     printf("Burn Everything. 8D\n");
   }
+  else if(command.Compare("FILE ",5))
+  {
+    printf("Create a file\n");
+  }
+  else if(command.Compare("FOLDER ",7))
+  {
+    printf("Create a folder\n");
+  }
+  else if(command.Compare("REMOVE ",7))
+  {
+    printf("Remove something\n");
+  }
   else
   {
     printf("Something more specific.\n");
