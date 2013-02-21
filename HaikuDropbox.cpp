@@ -36,13 +36,9 @@ enum {
 */
 
 int
-parse_command(const char* command)
+parse_command(BString command)
 {
-  if(command[0] == 'R'
-    && command[1] == 'E'
-    && command[2] == 'S'
-    && command[3] == 'E'
-    && command[4] == 'T')
+  if(command.Compare("RESET\n") == 0)
   {
     printf("Burn Everything. 8D\n");
   }
@@ -76,7 +72,7 @@ App::App(void)
   BString line;
   while(get_next_line(delta_commands,&line) == B_OK)
   {
-    (void) parse_command(line.String());
+    (void) parse_command(line);
   }
 
   //start watching ~/Dropbox folder contents (create, delete, move)
