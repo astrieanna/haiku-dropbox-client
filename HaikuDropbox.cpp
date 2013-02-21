@@ -45,7 +45,7 @@ parse_command(BString command)
     path.CopyInto(dirpath,0,split);
     if(dirpath != "")
       create_directory(dirpath,0x0777);
-    BDirectory().CreateFile(BString("/boot/home/Dropbox/") << path,&BFile());
+    run_script(BString("python db_get.py ") << path << " /boot/home/Dropbox/" << path);
   }
   else if(command.Compare("FOLDER ",7) == 0)
   {
