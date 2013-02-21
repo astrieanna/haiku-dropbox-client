@@ -42,17 +42,24 @@ parse_command(BString command)
   {
     printf("Burn Everything. 8D\n");
   }
-  else if(command.Compare("FILE ",5))
+  else if(command.Compare("FILE ",5) == 0)
   {
-    printf("Create a file\n");
+    BString path;
+    command.CopyInto(path,5,command.FindLast(" ") - 5);
+    printf("create a file at |%s|\n",path.String());
   }
-  else if(command.Compare("FOLDER ",7))
+  else if(command.Compare("FOLDER ",7) == 0)
   {
-    printf("Create a folder\n");
+    BString path;
+    int last = command.FindLast(" ");
+    command.CopyInto(path,7,last - 7);
+    printf("create a folder at |%s|\n", path.String());
   }
-  else if(command.Compare("REMOVE ",7))
+  else if(command.Compare("REMOVE ",7) == 0)
   {
-    printf("Remove something\n");
+    BString path;
+    command.CopyInto(path,7,command.FindLast(" ") - 7);
+    printf("Remove whatever is at |%s|\n", path.String());
   }
   else
   {
