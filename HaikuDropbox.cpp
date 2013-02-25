@@ -258,7 +258,18 @@ App::MessageReceived(BMessage *msg)
                new_file.GetPath(&path);
                add_folder_to_dropbox(path.Path());
 
+               //do I need a global data structure for BDirectories?
+
                //track folder
+               node_ref nref;
+               err = new_file.GetNodeRef(&nref);
+               if(err == B_OK)
+               {
+                 err = watch_node(&nref, B_WATCH_STAT | B_WATCH_DIRECTORY, be_app_messenger);
+                 if(err != B_OK)
+                   printf("Watch new folder %s: Not Ok.\n", path.Path());
+               }
+
             }
             else //it's a file (or sym link)
             {
