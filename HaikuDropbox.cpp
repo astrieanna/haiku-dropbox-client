@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 
 #include "App.h"
 #include <Directory.h>
@@ -27,6 +28,83 @@ run_script(const char *cmd)
   return output;
 }
 
+/*
+* Convert a Dropbox path to a local absolute filepath
+* by adding the <path to Dropbox> to the beginning
+*/
+BString db_to_local_filepath(const char * local_path)
+{
+  BString s;
+  s << "/boot/home/Dropbox/" << local_path;
+  return s;
+}
+
+BString*
+get_or_put(const char *cmd, const char *path1, const char *path2)
+{
+  pid_t pid = fork();
+  BString *output = new BString;
+  char buf[BUFSIZ];
+
+  //open pipe
+  int fd[2];
+  pipe(fd);
+
+  if(pid < 0)
+  {
+    return output; //error
+  }
+  if(pid == 0)
+  {
+    //child
+    //make stdout the pipe
+    dup2(fd[0],STDOUT_FILENO);
+    execlp("python","python",cmd,path1,path2,(char*)0);
+  }
+  else //parent
+  {
+    dup2(fd[1],STDIN_FILENO);
+
+    //wait for child process to finish
+    int status;
+    waitpid(pid, &status, 0);
+
+    //use read-end of pipe to fill in BString return value.
+    while(fgets(buf,BUFSIZ,stdin) !=NULL)
+    {
+      output->Append("RAWR");
+      output->Append(buf);
+    }
+    printf("output:\n%s\n",output->String());
+
+  }
+  return output;
+
+}
+
+BString*
+one_path_arg(const char *cmd, const char *path)
+{
+  pid_t pid = fork();
+  BString *output = new BString;
+  char buf[BUFSIZ];
+
+  int fd[2];
+  pipe(fd);
+
+  if(pid < 0)
+  {
+    dup2(fd[0],STDOUT_FILENO);
+    execlp("python","python",cmd,path);
+  }
+  else //parent
+  {
+    dup2(fd[1],STDIN_FILENO);
+    while(fgets(buf,BUFSIZ,stdin) != NULL)
+      output->Append(buf);
+  }
+  return output;
+}
 int
 parse_command(BString command)
 {
@@ -45,7 +123,8 @@ parse_command(BString command)
     path.CopyInto(dirpath,0,split);
     if(dirpath != "")
       create_directory(dirpath,0x0777);
-    run_script(BString("python db_get.py ") << path << " /boot/home/Dropbox/" << path);
+    //run_script(BString("python db_get.py ") << path << " /boot/home/Dropbox/" << path);
+    get_or_put("db_get.py",path.String(), db_to_local_filepath(path.String()));
   }
   else if(command.Compare("FOLDER ",7) == 0)
   {
@@ -168,12 +247,15 @@ BString local_to_db_filepath(const char * local_path)
 void
 add_file_to_dropbox(const char * filepath)
 {
+  get_or_put("db_put.py",filepath, local_to_db_filepath(filepath));
+  /*
   BString s, dbfp;
   dbfp = local_to_db_filepath(filepath);
   s << "python db_put.py " << BString(filepath) << " " << dbfp;
   printf("local filepath:%s\n",filepath);
   printf("dropbox filepath:%s\n",dbfp.String());
   run_script(s.String());
+  */
 }
 
 /*
@@ -183,11 +265,15 @@ add_file_to_dropbox(const char * filepath)
 void
 add_folder_to_dropbox(const char * filepath)
 {
+
+  one_path_arg("db_mkdir.py",local_to_db_filepath(filepath));
+  /*
   BString s;
   s << "python db_mkdir.py " << local_to_db_filepath(filepath);
   printf("local filepath: %s\n", filepath);
   printf("db filepath: %s\n", local_to_db_filepath(filepath).String());
   run_script(s.String());
+  */
 }
 
 /*
