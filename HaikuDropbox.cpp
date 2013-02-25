@@ -248,14 +248,8 @@ void
 add_file_to_dropbox(const char * filepath)
 {
   get_or_put("db_put.py",filepath, local_to_db_filepath(filepath));
-  /*
-  BString s, dbfp;
-  dbfp = local_to_db_filepath(filepath);
-  s << "python db_put.py " << BString(filepath) << " " << dbfp;
   printf("local filepath:%s\n",filepath);
-  printf("dropbox filepath:%s\n",dbfp.String());
-  run_script(s.String());
-  */
+  printf("dropbox filepath:%s\n",local_to_db_filepath(filepath).String());
 }
 
 /*
@@ -265,15 +259,9 @@ add_file_to_dropbox(const char * filepath)
 void
 add_folder_to_dropbox(const char * filepath)
 {
-
   one_path_arg("db_mkdir.py",local_to_db_filepath(filepath));
-  /*
-  BString s;
-  s << "python db_mkdir.py " << local_to_db_filepath(filepath);
   printf("local filepath: %s\n", filepath);
   printf("db filepath: %s\n", local_to_db_filepath(filepath).String());
-  run_script(s.String());
-  */
 }
 
 /*
