@@ -251,28 +251,33 @@ App::MessageReceived(BMessage *msg)
             printf("name:%s\n",name);
             ref.set_name(name);
             BEntry new_file = BEntry(&ref);
-
-            // add the new file to Dropbox
-            new_file.GetPath(&path);
-            add_file_to_dropbox(path.Path());
-
-            // add the new file to global tracking lists
-            BFile *file = new BFile(&new_file, B_READ_ONLY);
-            this->tracked_files.AddItem((void*)file);
-            BPath *path2 = new BPath;
-            new_file.GetPath(path2);
-            this->tracked_filepaths.AddItem((void*)path2);
-
-            // listen for EDIT alerts on the new file
-            node_ref nref;
-            err = new_file.GetNodeRef(&nref);
-            if(err == B_OK)
+            if(new_file.IsDirectory())
             {
-              err = watch_node(&nref, B_WATCH_STAT, be_app_messenger);
-              if(err != B_OK)
-                printf("Watch new file %s: Not Ok.\n", path2->Path());
+               printf("Actually, it's a directory!\n");
             }
+            else //it's a file (or sym link)
+            {
+              // add the new file to Dropbox
+              new_file.GetPath(&path);
+              add_file_to_dropbox(path.Path());
 
+              // add the new file to global tracking lists
+              BFile *file = new BFile(&new_file, B_READ_ONLY);
+              this->tracked_files.AddItem((void*)file);
+              BPath *path2 = new BPath;
+              new_file.GetPath(path2);
+              this->tracked_filepaths.AddItem((void*)path2);
+
+              // listen for EDIT alerts on the new file
+              node_ref nref;
+              err = new_file.GetNodeRef(&nref);
+              if(err == B_OK)
+              {
+                err = watch_node(&nref, B_WATCH_STAT, be_app_messenger);
+                if(err != B_OK)
+                  printf("Watch new file %s: Not Ok.\n", path2->Path());
+              }
+            }
             break;
           }
           case B_ENTRY_MOVED:
