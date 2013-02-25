@@ -254,6 +254,11 @@ App::MessageReceived(BMessage *msg)
             if(new_file.IsDirectory())
             {
                printf("Actually, it's a directory!\n");
+               //add to Dropbox
+               new_file.GetPath(&path);
+               add_folder_to_dropbox(path.Path());
+
+               //track folder
             }
             else //it's a file (or sym link)
             {
