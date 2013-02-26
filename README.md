@@ -66,3 +66,8 @@ You Dropbox files are in no danger because it only has access to Apps/python_cli
 There will be a lot of output to the terminal because I'm still debugging things.
 You'll be able to see the files/edits from other devices
 with Dropbox clients or from the Dropbox web interface.
+
+# License
+
+This code is under the MIT license.
+See the file LICENSE for the full text of it.
