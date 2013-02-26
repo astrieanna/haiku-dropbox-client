@@ -10,6 +10,9 @@
 #include <String.h>
 #include <File.h>
 
+const char * local_path_string = "/boot/home/Dropbox/";
+const char * local_path_string_noslash = "/boot/home/Dropbox";
+
 // String modification helper functions
 
 /*
@@ -19,7 +22,7 @@
 BString db_to_local_filepath(const char * local_path)
 {
   BString s;
-  s << "/boot/home/Dropbox/" << local_path;
+  s << local_path_string << local_path;
   return s;
 }
 
@@ -31,7 +34,7 @@ BString local_to_db_filepath(const char * local_path)
 {
   BString s;
   s = BString(local_path);
-  s.RemoveFirst("/boot/home/Dropbox/");
+  s.RemoveFirst(local_path_string);
   return s;
 }
 
@@ -160,7 +163,7 @@ delete_file_on_dropbox(const char * filepath)
   printf("Telling Dropbox to Delete\n");
   BString s, dbfp;
   s = BString(filepath);
-  s.RemoveFirst("/boot/home/Dropbox");
+  s.RemoveFirst(local_path_string_noslash);
   dbfp << "python db_rm.py " << s;
   printf("%s\n",dbfp.String());
   run_script(dbfp);
@@ -217,7 +220,7 @@ update_file_in_dropbox(const char * filepath)
 
 create_local_directory(BString *dropbox_path)
 {
-    create_directory(BString("/boot/home/Dropbox/") << path, 0x0777);
+    create_directory(BString(local_path_string) << path, 0x0777);
 }
 
 // Act on Deltas
@@ -281,7 +284,7 @@ App::App(void)
   }
 
   //start watching ~/Dropbox folder contents (create, delete, move)
-  BDirectory dir("/boot/home/Dropbox"); //don't use ~ here
+  BDirectory dir(local_path_string_noslash); //don't use ~ here
   node_ref nref;
   status_t err;
   if(dir.InitCheck() == B_OK){
