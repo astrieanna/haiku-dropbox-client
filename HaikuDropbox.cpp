@@ -161,12 +161,7 @@ void
 delete_file_on_dropbox(const char * filepath)
 {
   printf("Telling Dropbox to Delete\n");
-  BString s, dbfp;
-  s = BString(filepath);
-  s.RemoveFirst(local_path_string_noslash);
-  dbfp << "python db_rm.py " << s;
-  printf("%s\n",dbfp.String());
-  run_script(dbfp);
+  one_path_arg("db_rm.py",local_to_db_filepath(filepath));
 }
 
 /*
