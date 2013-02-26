@@ -193,12 +193,17 @@ App::App(void)
   BFile *file;
   while(err == B_OK) //loop over files
   {
+    //put this file in global list
     file = new BFile(entry, B_READ_ONLY);
-    this->tracked_files.AddItem((void*)(file)); //add file to my list
+    this->tracked_files.AddItem((void*)(file));
+
+    //add filepath to global list
     path = new BPath;
     entry->GetPath(path);
-    printf("tracking: %s\n",path->Path());
     this->tracked_filepaths.AddItem((void*)path); 
+
+    printf("tracking: %s\n",path->Path());
+
     err2 = entry->GetNodeRef(&nref);
     if(err2 == B_OK)
     {
@@ -209,7 +214,7 @@ App::App(void)
     entry = new BEntry;
     err = dir.GetNextEntry(entry);
   }
-  //delete that last BEntry...
+  //TODO: delete that last BEntry...
 }
 
 /*
