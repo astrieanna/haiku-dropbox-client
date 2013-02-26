@@ -212,6 +212,8 @@ App::App(void)
         err2 = watch_node(&nref, B_WATCH_STAT|B_WATCH_DIRECTORY, be_app_messenger);
         if(err2 != B_OK)
           printf("Watch folder Node %s: Not OK\n", path->Path());
+
+        //TODO: recurse to track this folder's contents
       }
       else
       {
