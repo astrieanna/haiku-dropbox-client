@@ -10,6 +10,44 @@
 #include <String.h>
 #include <File.h>
 
+// String modification helper functions
+
+/*
+* Convert a Dropbox path to a local absolute filepath
+* by adding the <path to Dropbox> to the beginning
+*/
+BString db_to_local_filepath(const char * local_path)
+{
+  BString s;
+  s << "/boot/home/Dropbox/" << local_path;
+  return s;
+}
+
+/*
+* Convert a local absolute filepath to a Dropbox one
+* by removing the <path to Dropbox> from the beginning
+*/
+BString local_to_db_filepath(const char * local_path)
+{
+  BString s;
+  s = BString(local_path);
+  s.RemoveFirst("/boot/home/Dropbox/");
+  return s;
+}
+
+int32
+get_next_line(BString *src, BString *dest)
+{
+  int32 eol = src->FindFirst('\n');
+  if(eol == B_ERROR)
+    return B_ERROR;
+
+  src->MoveInto(*dest,0,eol+1);
+  return B_OK;
+}
+
+
+// Run Python Scripts
 /*
 * Runs a command in the terminal, given the string you'd type
 */
@@ -28,16 +66,6 @@ run_script(const char *cmd)
   return output;
 }
 
-/*
-* Convert a Dropbox path to a local absolute filepath
-* by adding the <path to Dropbox> to the beginning
-*/
-BString db_to_local_filepath(const char * local_path)
-{
-  BString s;
-  s << "/boot/home/Dropbox/" << local_path;
-  return s;
-}
 
 BString*
 get_or_put(const char *cmd, const char *path1, const char *path2)
@@ -105,130 +133,8 @@ one_path_arg(const char *cmd, const char *path)
   }
   return output;
 }
-int
-parse_command(BString command)
-{
-  if(command.Compare("RESET\n") == 0)
-  {
-    printf("Burn Everything. 8D\n");
-    run_script("rm -rf ~/Dropbox");
-    create_directory("/boot/home/Dropbox", 0x0777);
-  }
-  else if(command.Compare("FILE ",5) == 0)
-  {
-    BString path, dirpath;
-    command.CopyInto(path,5,command.FindLast(" ") - 5);
-    printf("create a file at |%s|\n",path.String());
-    int32 split = path.FindLast("/");
-    path.CopyInto(dirpath,0,split);
-    if(dirpath != "")
-      create_directory(dirpath,0x0777);
-    //run_script(BString("python db_get.py ") << path << " /boot/home/Dropbox/" << path);
-    get_or_put("db_get.py",path.String(), db_to_local_filepath(path.String()));
-  }
-  else if(command.Compare("FOLDER ",7) == 0)
-  {
-    BString path;
-    int last = command.FindLast(" ");
-    command.CopyInto(path,7,last - 7);
-    printf("create a folder at |%s|\n", path.String());
-    path.Prepend("/boot/home/Dropbox");
-    create_directory(path, 0x0777);
-  }
-  else if(command.Compare("REMOVE ",7) == 0)
-  {
-    BString path;
-    command.CopyInto(path,7,command.FindLast(" ") - 7);
-    printf("Remove whatever is at |%s|\n", path.String());
-  }
-  else
-  {
-    printf("Something more specific.\n");
-  }
-  return 0;
-}
 
-int32
-get_next_line(BString *src, BString *dest)
-{
-  int32 eol = src->FindFirst('\n');
-  if(eol == B_ERROR)
-    return B_ERROR;
-
-  src->MoveInto(*dest,0,eol+1);
-  return B_OK;
-}
-
-/*
-* Sets up the Node Monitoring for Dropbox folder and contents
-* and creates data structure for determining which files are deleted or edited
-*/
-App::App(void)
-  : BApplication("application/x-vnd.lh-MyDropboxClient")
-{
-  //ask Dropbox for deltas!
-  BString *delta_commands = run_script("python db_delta.py");
-  BString line;
-  while(get_next_line(delta_commands,&line) == B_OK)
-  {
-    (void) parse_command(line);
-  }
-
-  //start watching ~/Dropbox folder contents (create, delete, move)
-  BDirectory dir("/boot/home/Dropbox"); //don't use ~ here
-  node_ref nref;
-  status_t err;
-  if(dir.InitCheck() == B_OK){
-    dir.GetNodeRef(&nref);
-    err = watch_node(&nref, B_WATCH_DIRECTORY, BMessenger(this));
-    if(err != B_OK)
-      printf("Watch Node: Not OK\n");
-  }
-
-  // record each file in the folder so that we know the name on deletion
-  BEntry *entry = new BEntry;
-  status_t err2;
-  err = dir.GetNextEntry(entry);
-  BPath *path;
-  BFile *file;
-  while(err == B_OK) //loop over files
-  {
-    //put this file in global list
-    file = new BFile(entry, B_READ_ONLY);
-    this->tracked_files.AddItem((void*)(file));
-
-    //add filepath to global list
-    path = new BPath;
-    entry->GetPath(path);
-    this->tracked_filepaths.AddItem((void*)path); 
-
-    printf("tracking: %s\n",path->Path());
-
-    err2 = entry->GetNodeRef(&nref);
-    if(err2 == B_OK)
-    {
-      if(file->IsDirectory())
-      {
-        err2 = watch_node(&nref, B_WATCH_STAT|B_WATCH_DIRECTORY, be_app_messenger);
-        if(err2 != B_OK)
-          printf("Watch folder Node %s: Not OK\n", path->Path());
-
-        //TODO: recurse to track this folder's contents
-      }
-      else
-      {
-        err2 = watch_node(&nref, B_WATCH_STAT, be_app_messenger); //watch for edits
-        if(err2 != B_OK)
-          printf("Watch file Node %s: Not OK\n", path->Path());
-      }
-    }
-
-    //increment loop variables
-    entry = new BEntry;
-    err = dir.GetNextEntry(entry);
-  }
-  delete entry;
-}
+// Talk to Dropbox
 
 /*
 * Given a local file path,
@@ -244,18 +150,6 @@ delete_file_on_dropbox(const char * filepath)
   dbfp << "python db_rm.py " << s;
   printf("%s\n",dbfp.String());
   run_script(dbfp);
-}
-
-/*
-* Convert a local absolute filepath to a Dropbox one
-* by removing the <path to Dropbox> from the beginning
-*/
-BString local_to_db_filepath(const char * local_path)
-{
-  BString s;
-  s = BString(local_path);
-  s.RemoveFirst("/boot/home/Dropbox/");
-  return s;
 }
 
 /*
@@ -307,6 +201,124 @@ update_file_in_dropbox(const char * filepath)
   add_file_to_dropbox(filepath); //just put it?
 }
 
+
+// Act on Deltas
+
+int
+parse_command(BString command)
+{
+  if(command.Compare("RESET\n") == 0)
+  {
+    printf("Burn Everything. 8D\n");
+    run_script("rm -rf ~/Dropbox");
+    create_directory("/boot/home/Dropbox", 0x0777);
+  }
+  else if(command.Compare("FILE ",5) == 0)
+  {
+    BString path, dirpath;
+    command.CopyInto(path,5,command.FindLast(" ") - 5);
+    printf("create a file at |%s|\n",path.String());
+    int32 split = path.FindLast("/");
+    path.CopyInto(dirpath,0,split);
+    if(dirpath != "")
+      create_directory(dirpath,0x0777);
+    //run_script(BString("python db_get.py ") << path << " /boot/home/Dropbox/" << path);
+    get_or_put("db_get.py",path.String(), db_to_local_filepath(path.String()));
+  }
+  else if(command.Compare("FOLDER ",7) == 0)
+  {
+    BString path;
+    int last = command.FindLast(" ");
+    command.CopyInto(path,7,last - 7);
+    printf("create a folder at |%s|\n", path.String());
+    path.Prepend("/boot/home/Dropbox");
+    create_directory(path, 0x0777);
+  }
+  else if(command.Compare("REMOVE ",7) == 0)
+  {
+    BString path;
+    command.CopyInto(path,7,command.FindLast(" ") - 7);
+    printf("Remove whatever is at |%s|\n", path.String());
+  }
+  else
+  {
+    printf("Something more specific.\n");
+  }
+  return 0;
+}
+
+/*
+* Sets up the Node Monitoring for Dropbox folder and contents
+* and creates data structure for determining which files are deleted or edited
+*/
+App::App(void)
+  : BApplication("application/x-vnd.lh-MyDropboxClient")
+{
+  //ask Dropbox for deltas!
+  BString *delta_commands = run_script("python db_delta.py");
+  BString line;
+  while(get_next_line(delta_commands,&line) == B_OK)
+  {
+    (void) parse_command(line);
+  }
+
+  //start watching ~/Dropbox folder contents (create, delete, move)
+  BDirectory dir("/boot/home/Dropbox"); //don't use ~ here
+  node_ref nref;
+  status_t err;
+  if(dir.InitCheck() == B_OK){
+    dir.GetNodeRef(&nref);
+    err = watch_node(&nref, B_WATCH_DIRECTORY, BMessenger(this));
+    if(err != B_OK)
+      printf("Watch Node: Not OK\n");
+  }
+
+  // record each file in the folder so that we know the name on deletion
+  BEntry *entry = new BEntry;
+  status_t err2;
+  err = dir.GetNextEntry(entry);
+  BPath *path;
+  BFile *file;
+  while(err == B_OK) //loop over files
+  {
+    //put this file in global list
+    file = new BFile(entry, B_READ_ONLY);
+    this->tracked_files.AddItem((void*)(file));
+
+    //add filepath to global list
+    path = new BPath;
+    entry->GetPath(path);
+    this->tracked_filepaths.AddItem((void*)path);
+
+    printf("tracking: %s\n",path->Path());
+
+    err2 = entry->GetNodeRef(&nref);
+    if(err2 == B_OK)
+    {
+      if(file->IsDirectory())
+      {
+        err2 = watch_node(&nref, B_WATCH_STAT|B_WATCH_DIRECTORY, be_app_messenger);
+        if(err2 != B_OK)
+          printf("Watch folder Node %s: Not OK\n", path->Path());
+
+        //TODO: recurse to track this folder's contents
+      }
+      else
+      {
+        err2 = watch_node(&nref, B_WATCH_STAT, be_app_messenger); //watch for edits
+        if(err2 != B_OK)
+          printf("Watch file Node %s: Not OK\n", path->Path());
+      }
+    }
+
+    //increment loop variables
+    entry = new BEntry;
+    err = dir.GetNextEntry(entry);
+  }
+  delete entry;
+}
+
+
 /*
 * Message Handling Function
 * If it's a node monitor message,
@@ -335,7 +347,7 @@ App::MessageReceived(BMessage *msg)
             entry_ref ref;
             BPath path;
             const char * name;
- 
+
             // unpack the message
             msg->FindInt32("device",&ref.device);
             msg->FindInt64("directory",&ref.directory);
