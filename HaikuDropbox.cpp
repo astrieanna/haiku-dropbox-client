@@ -267,6 +267,22 @@ recursive_watch(BDirectory *dir)
   }
 }
 
+/*
+* Given a BEntry* representing a file (or folder)
+* add the relevant BFile and BPath to the global tracking lists
+* (tracked_files and tracked_filepaths)
+*/
+void
+track_file(BEntry *new_file)
+{
+  BFile *file = new BFile(new_file, B_READ_ONLY);
+  this->tracked_files.AddItem((void*)file);
+  BPath *path = new BPath;
+  new_file->GetPath(path);
+  this->tracked_filepaths.AddItem((void*)path);
+}
+
+
 // Act on Deltas
 // TODO: consider moving some cases into separate functions
 int
@@ -340,7 +356,6 @@ App::App(void)
 
   //watch all the child files for edits and the folders for create/delete/move
   recursive_watch(&dir);
-
 }
 
 
@@ -368,7 +383,6 @@ App::MessageReceived(BMessage *msg)
         {
           case B_ENTRY_CREATED:
           {
-            printf("NEW FILE\n");
             entry_ref ref;
             BPath path;
             const char * name;
@@ -377,27 +391,20 @@ App::MessageReceived(BMessage *msg)
             msg->FindInt32("device",&ref.device);
             msg->FindInt64("directory",&ref.directory);
             msg->FindString("name",&name);
-            printf("name:%s\n",name);
             ref.set_name(name);
             BEntry new_file = BEntry(&ref);
+
             if(new_file.IsDirectory())
             {
-               printf("Actually, it's a directory!\n");
                //add to Dropbox
                new_file.GetPath(&path);
                add_folder_to_dropbox(path.Path());
 
-               //do I need a global data structure for BDirectories?
+               //add as BFile to global list
+               track_file(&new_file)
 
                //track folder
-               node_ref nref;
-               err = new_file.GetNodeRef(&nref);
-               if(err == B_OK)
-               {
-                 err = watch_node(&nref, B_WATCH_STAT | B_WATCH_DIRECTORY, be_app_messenger);
-                 if(err != B_OK)
-                   printf("Watch new folder %s: Not Ok.\n", path.Path());
-               }
+               recursive_watch(&BDirectory(new_file));
 
             }
             else //it's a file (or sym link)
@@ -407,11 +414,7 @@ App::MessageReceived(BMessage *msg)
               add_file_to_dropbox(path.Path());
 
               // add the new file to global tracking lists
-              BFile *file = new BFile(&new_file, B_READ_ONLY);
-              this->tracked_files.AddItem((void*)file);
-              BPath *path2 = new BPath;
-              new_file.GetPath(path2);
-              this->tracked_filepaths.AddItem((void*)path2);
+              track_file(&new_file);
 
               // listen for EDIT alerts on the new file
               node_ref nref;
