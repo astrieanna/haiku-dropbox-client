@@ -35,6 +35,11 @@ BString local_to_db_filepath(const char * local_path)
   return s;
 }
 
+/*
+* Moves the first line in src to dest.
+* Destructively alters src.
+* newline is included in the move.
+*/
 int32
 get_next_line(BString *src, BString *dest)
 {
@@ -48,6 +53,8 @@ get_next_line(BString *src, BString *dest)
 
 
 // Run Python Scripts
+//TODO: Merge the 0,1,2 argument cases into 1 function.
+
 /*
 * Runs a command in the terminal, given the string you'd type
 */
@@ -66,7 +73,10 @@ run_script(const char *cmd)
   return output;
 }
 
-//TODO: Merge the 0,1,2 argument cases into 1 function.
+/*
+* Run a python script named cmd, with the arguments path1 and path2
+* Uses execlp to avoid any escaping issues with the path arguments
+*/
 BString*
 get_or_put(const char *cmd, const char *path1, const char *path2)
 {
@@ -110,6 +120,10 @@ get_or_put(const char *cmd, const char *path1, const char *path2)
 
 }
 
+/*
+* Runs a python script named cmd with one arg, path.
+* uses execlp to avoid escaping issues with path.
+*/
 BString*
 one_path_arg(const char *cmd, const char *path)
 {
@@ -203,7 +217,7 @@ update_file_in_dropbox(const char * filepath)
 
 
 // Act on Deltas
-
+// TODO: consider moving some cases into separate functions
 int
 parse_command(BString command)
 {
@@ -279,6 +293,7 @@ App::App(void)
   err = dir.GetNextEntry(entry);
   BPath *path;
   BFile *file;
+  //TODO: refactor this part out into a new function
   while(err == B_OK) //loop over files
   {
     //put this file in global list
