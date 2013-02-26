@@ -214,7 +214,7 @@ App::App(void)
     entry = new BEntry;
     err = dir.GetNextEntry(entry);
   }
-  //TODO: delete that last BEntry...
+  delete entry;
 }
 
 /*
