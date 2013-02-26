@@ -172,8 +172,6 @@ void
 add_file_to_dropbox(const char * filepath)
 {
   get_or_put("db_put.py",filepath, local_to_db_filepath(filepath));
-  printf("local filepath:%s\n",filepath);
-  printf("dropbox filepath:%s\n",local_to_db_filepath(filepath).String());
 }
 
 /*
@@ -184,8 +182,6 @@ void
 add_folder_to_dropbox(const char * filepath)
 {
   one_path_arg("db_mkdir.py",local_to_db_filepath(filepath));
-  printf("local filepath: %s\n", filepath);
-  printf("db filepath: %s\n", local_to_db_filepath(filepath).String());
 }
 
 /*
@@ -199,7 +195,7 @@ void
 moved_file(BMessage *msg)
 {
   //is this file being move into or out of ~/Dropbox?
-  run_script("python db_ls.py");
+  printf("Local file moved. TODO: sync to remote")
 }
 
 /*
@@ -209,10 +205,11 @@ moved_file(BMessage *msg)
 void
 update_file_in_dropbox(const char * filepath)
 {
-  printf("Putting %s to Dropbox.\n", filepath);
-  add_file_to_dropbox(filepath); //just put it?
+  printf("File edited locally. TODO: properly sync %s to dropbox.\n", filepath);
+  add_file_to_dropbox(filepath); //need to utilize parent_rev
 }
 
+//TODO: pick better default permissions...
 create_local_directory(BString *dropbox_path)
 {
     create_directory(BString(local_path_string) << path, 0x0777);
