@@ -215,6 +215,10 @@ update_file_in_dropbox(const char * filepath)
   add_file_to_dropbox(filepath); //just put it?
 }
 
+create_local_directory(BString *dropbox_path)
+{
+    create_directory(BString("/boot/home/Dropbox/") << path, 0x0777);
+}
 
 // Act on Deltas
 // TODO: consider moving some cases into separate functions
@@ -225,40 +229,40 @@ parse_command(BString command)
   {
     printf("Burn Everything. 8D\n");
     run_script("rm -rf ~/Dropbox"); //TODO: use native API, not shell command
-    create_directory("/boot/home/Dropbox", 0x0777); //TODO: what is the default permissions?
+    create_local_directory(BString(""));
   }
   else if(command.Compare("FILE ",5) == 0)
   {
     BString path, dirpath;
     command.CopyInto(path,5,command.FindLast(" ") - 5);
+
+    path.CopyInto(dirpath,0,path.FindLast("/"));
+    create_local_directory(&dirpath);
+
     printf("create a file at |%s|\n",path.String());
-    const int32 split = path.FindLast("/");
-    path.CopyInto(dirpath,0,split);
-    if(dirpath != "")
-      create_directory(dirpath,0x0777);
-    //run_script(BString("python db_get.py ") << path << " /boot/home/Dropbox/" << path);
     get_or_put("db_get.py",path.String(), db_to_local_filepath(path.String()));
   }
   else if(command.Compare("FOLDER ",7) == 0)
   {
     BString path;
-    const int last = command.FindLast(" ");
-    command.CopyInto(path,7,last - 7);
+    command.CopyInto(path,7,command.FindLast(" ") - 7);
+
     printf("create a folder at |%s|\n", path.String());
-    path.Prepend("/boot/home/Dropbox");
-    create_directory(path, 0x0777);
+    create_local_directory(&path);
   }
   else if(command.Compare("REMOVE ",7) == 0)
   {
     BString path;
     command.CopyInto(path,7,command.FindLast(" ") - 7);
     printf("Remove whatever is at |%s|\n", path.String());
+    //TODO: actually remove it...
   }
   else
   {
     printf("Did not recognize command.\n");
+    return B_ERROR;
   }
-  return 0;
+  return B_OK;
 }
 
 /*
