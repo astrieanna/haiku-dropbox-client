@@ -38,11 +38,11 @@ BString local_to_db_filepath(const char * local_path)
 int32
 get_next_line(BString *src, BString *dest)
 {
-  int32 eol = src->FindFirst('\n');
+  const int32 eol = src->FindFirst('\n');
   if(eol == B_ERROR)
     return B_ERROR;
 
-  src->MoveInto(*dest,0,eol+1);
+  src->MoveInto(*dest,0,eol+1); //TODO: does this ever return an error code?
   return B_OK;
 }
 
@@ -62,11 +62,11 @@ run_script(const char *cmd)
     while (fgets(buf, BUFSIZ, ptr) != NULL)
        output->Append(buf);
 
-  (void) pclose(ptr);
+  (void) pclose(ptr); //TODO: what's the return type?
   return output;
 }
 
-
+//TODO: Merge the 0,1,2 argument cases into 1 function.
 BString*
 get_or_put(const char *cmd, const char *path1, const char *path2)
 {
@@ -210,15 +210,15 @@ parse_command(BString command)
   if(command.Compare("RESET\n") == 0)
   {
     printf("Burn Everything. 8D\n");
-    run_script("rm -rf ~/Dropbox");
-    create_directory("/boot/home/Dropbox", 0x0777);
+    run_script("rm -rf ~/Dropbox"); //TODO: use native API, not shell command
+    create_directory("/boot/home/Dropbox", 0x0777); //TODO: what is the default permissions?
   }
   else if(command.Compare("FILE ",5) == 0)
   {
     BString path, dirpath;
     command.CopyInto(path,5,command.FindLast(" ") - 5);
     printf("create a file at |%s|\n",path.String());
-    int32 split = path.FindLast("/");
+    const int32 split = path.FindLast("/");
     path.CopyInto(dirpath,0,split);
     if(dirpath != "")
       create_directory(dirpath,0x0777);
@@ -228,7 +228,7 @@ parse_command(BString command)
   else if(command.Compare("FOLDER ",7) == 0)
   {
     BString path;
-    int last = command.FindLast(" ");
+    const int last = command.FindLast(" ");
     command.CopyInto(path,7,last - 7);
     printf("create a folder at |%s|\n", path.String());
     path.Prepend("/boot/home/Dropbox");
@@ -242,7 +242,7 @@ parse_command(BString command)
   }
   else
   {
-    printf("Something more specific.\n");
+    printf("Did not recognize command.\n");
   }
   return 0;
 }
@@ -259,7 +259,7 @@ App::App(void)
   BString line;
   while(get_next_line(delta_commands,&line) == B_OK)
   {
-    (void) parse_command(line);
+    (void) parse_command(line); //TODO: do something more appropriate with return
   }
 
   //start watching ~/Dropbox folder contents (create, delete, move)
@@ -312,7 +312,7 @@ App::App(void)
     }
 
     //increment loop variables
-    entry = new BEntry;
+    entry = new BEntry; //TODO: don't make an new entry each time. They don't go in the list anyway.
     err = dir.GetNextEntry(entry);
   }
   delete entry;
@@ -330,7 +330,7 @@ App::MessageReceived(BMessage *msg)
 {
   switch(msg->what)
   {
-    case B_NODE_MONITOR:
+    case B_NODE_MONITOR: //TODO: Refactor cases out into own functions
     {
       printf("Received Node Monitor Alert\n");
       status_t err;
