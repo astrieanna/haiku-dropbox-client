@@ -218,55 +218,6 @@ create_local_directory(BString *dropbox_path)
     create_directory(BString(local_path_string) << path, 0x0777);
 }
 
-void
-recursive_watch(BDirectory *dir)
-{
-  status_t err,err2;
-
-  BPath *path;
-  BFile *file;
-
-  BEntry entry;
-  err = dir->GetNextEntry(&entry);
-
-  //for each file in the current directory
-  while(err == B_OK)
-  {
-    //put this file in global list
-    file = new BFile(&entry, B_READ_ONLY);
-    this->tracked_files.AddItem((void*)(file));
-
-    //add filepath to global list
-    path = new BPath;
-    entry->GetPath(path);
-    this->tracked_filepaths.AddItem((void*)path);
-
-    printf("tracking: %s\n",path->Path());
-
-    err2 = entry.GetNodeRef(&nref);
-    if(err2 == B_OK)
-    {
-      if(file->IsDirectory())
-      {
-        err2 = watch_node(&nref, B_WATCH_DIRECTORY, be_app_messenger);
-        if(err2 != B_OK)
-          printf("Watch folder Node %s: Not OK\n", path->Path());
-
-        BDirectory tmpdir = BDirectory(&entry);
-        recursive_watch(&tmpdir);
-      }
-      else
-      {
-        err2 = watch_node(&nref, B_WATCH_STAT, be_app_messenger); //watch for edits
-        if(err2 != B_OK)
-          printf("Watch file Node %s: Not OK\n", path->Path());
-      }
-    }
-
-    err = dir->GetNextEntry(&entry);
-  }
-}
-
 /*
 * Given a BEntry* representing a file (or folder)
 * add the relevant BFile and BPath to the global tracking lists
@@ -282,6 +233,46 @@ track_file(BEntry *new_file)
   this->tracked_filepaths.AddItem((void*)path);
 }
 
+void
+recursive_watch(BDirectory *dir)
+{
+  status_t err,err2;
+
+  BPath *path;
+  BFile *file;
+
+  BEntry entry;
+  err = dir->GetNextEntry(&entry);
+
+  //for each file in the current directory
+  while(err == B_OK)
+  {
+    //put this file in global list
+    track_file(&entry);
+
+    err2 = entry.GetNodeRef(&nref);
+    if(err2 == B_OK)
+    {
+      if(file->IsDirectory())
+      {
+        err2 = watch_node(&nref, B_WATCH_DIRECTORY, be_app_messenger);
+        if(err2 != B_OK)
+          printf("Watch folder Node: Not OK\n";
+
+        BDirectory tmpdir = BDirectory(&entry);
+        recursive_watch(&tmpdir);
+      }
+      else
+      {
+        err2 = watch_node(&nref, B_WATCH_STAT, be_app_messenger); //watch for edits
+        if(err2 != B_OK)
+          printf("Watch file Node: Not OK\n";
+      }
+    }
+
+    err = dir->GetNextEntry(&entry);
+  }
+}
 
 // Act on Deltas
 // TODO: consider moving some cases into separate functions
