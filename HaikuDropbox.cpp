@@ -207,10 +207,21 @@ App::App(void)
     err2 = entry->GetNodeRef(&nref);
     if(err2 == B_OK)
     {
-      err2 = watch_node(&nref, B_WATCH_STAT|B_WATCH_DIRECTORY, be_app_messenger); //watch for edits
-      if(err2 != B_OK)
-        printf("Watch file Node: Not OK\n");
+      if(file->IsDirectory())
+      {
+        err2 = watch_node(&nref, B_WATCH_STAT|B_WATCH_DIRECTORY, be_app_messenger);
+        if(err2 != B_OK)
+          printf("Watch folder Node %s: Not OK\n", path->Path());
+      }
+      else
+      {
+        err2 = watch_node(&nref, B_WATCH_STAT, be_app_messenger); //watch for edits
+        if(err2 != B_OK)
+          printf("Watch file Node %s: Not OK\n", path->Path());
+      }
     }
+
+    //increment loop variables
     entry = new BEntry;
     err = dir.GetNextEntry(entry);
   }
