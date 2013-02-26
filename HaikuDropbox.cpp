@@ -383,29 +383,19 @@ App::MessageReceived(BMessage *msg)
             msg->FindInt64("directory",&ref.directory);
             msg->FindString("name",&name);
             ref.set_name(name);
+
             BEntry new_file = BEntry(&ref);
+            new_file.GetPath(&path);
+            track_file(&new_file);
 
             if(new_file.IsDirectory())
             {
-               //add to Dropbox
-               new_file.GetPath(&path);
                add_folder_to_dropbox(path.Path());
-
-               //add as BFile to global list
-               track_file(&new_file)
-
-               //track folder
                recursive_watch(&BDirectory(new_file));
-
             }
-            else //it's a file (or sym link)
+            else
             {
-              // add the new file to Dropbox
-              new_file.GetPath(&path);
               add_file_to_dropbox(path.Path());
-
-              // add the new file to global tracking lists
-              track_file(&new_file);
 
               // listen for EDIT alerts on the new file
               node_ref nref;
