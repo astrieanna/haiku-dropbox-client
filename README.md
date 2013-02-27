@@ -24,8 +24,9 @@ On subsequent starts, it will pull new changes from Dropbox
 Changes made locally without the client running will not be detected or sync'd.
 
 Local file/folder creation/deletion will be sync'd.
-File editing will cause a new file to be added to Dropbox.
-Moving/renaming will not be sync'd to Dropbox yet.
+File editing locally will cause a new file to be added to Dropbox.
+Moving/renaming local files will be sync'd to Dropbox.
+This includes moving files into or out of the ~/Dropbox folder.
 
 # Dependencies and Compilation
 
@@ -35,7 +36,7 @@ For the C++ part, just run `make` in the source directory
 and it should build an executable named `hdbclient.exe`
 in a directory whose name starts with 'object'.
 
-For the Python part to work you'll need to install the Python SDK
+For the Python part to work you'll need to install the Dropbox Python SDK
 (which requires installing setuptools).
 
 # Dropbox Authorization
@@ -61,7 +62,7 @@ However, you only need to do it once during setup, so it's not yet a priority.
 # Have Fun :)
 
 To play with the client, just run `hdbclient.exe`
-and then create/remove/edit files in the `~/Dropbox` folder.
+and then create/remove/edit/move files in the `~/Dropbox` folder.
 You Dropbox files are in no danger because it only has access to Apps/python_cli.
 There will be a lot of output to the terminal because I'm still debugging things.
 You'll be able to see the files/edits from other devices
