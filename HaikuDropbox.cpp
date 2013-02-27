@@ -479,6 +479,8 @@ App::MessageReceived(BMessage *msg)
               dest_entry.GetPath(&new_path);
               get_or_put("db_mv.py",local_to_db_filepath(old_path->Path()),local_to_db_filepath(new_path.Path()));
               printf("moved the file on remote :)\n");
+
+              old_path->SetTo(&dest_entry);
             }
             else if(index >= 0)
             {
@@ -495,8 +497,20 @@ App::MessageReceived(BMessage *msg)
               printf("moving file into dropbox\n");
               BPath new_path;
               dest_entry.GetPath(&new_path);
-              get_or_put("db_put.py",new_path.Path(),local_to_db_filepath(new_path.Path()));
-              
+
+              this->track_file(&dest_entry);
+
+              if(dest_entry.IsDirectory())
+              {
+                 add_folder_to_dropbox(new_path.Path());
+                 BDirectory new_dir = BDirectory(&dest_entry);
+                 this->recursive_watch(&new_dir);
+              }
+              else
+              {
+                add_file_to_dropbox(new_path.Path());
+                watch_entry(&dest_entry,B_WATCH_STAT);
+              }
             }
             else
             {
