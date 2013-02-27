@@ -493,6 +493,10 @@ App::MessageReceived(BMessage *msg)
             {
               //moving into dropbox
               printf("moving file into dropbox\n");
+              BPath new_path;
+              dest_entry.GetPath(&new_path);
+              get_or_put("db_put.py",new_path.Path(),local_to_db_filepath(new_path.Path()));
+              
             }
             else
             {
