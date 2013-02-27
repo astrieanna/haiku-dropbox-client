@@ -7,6 +7,7 @@ def main(src,dest):
     term = DropboxTerm(APP_KEY, APP_SECRET)
 
     metadata = term.do_put(src,dest)
+    print "%s %s" % (metadata['path'],metadata['rev'])
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
