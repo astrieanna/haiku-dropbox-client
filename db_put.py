@@ -6,7 +6,7 @@ def main(src,dest):
         exit("You need to set your APP_KEY and APP_SECRET!")
     term = DropboxTerm(APP_KEY, APP_SECRET)
 
-    term.do_put(src,dest)
+    metadata = term.do_put(src,dest)
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:

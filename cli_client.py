@@ -179,7 +179,7 @@ class DropboxTerm(cmd.Cmd):
         """
         from_file = open(os.path.expanduser(from_path), "rb")
 
-        self.api_client.put_file(self.current_path + "/" + to_path, from_file)
+        return self.api_client.put_file(self.current_path + "/" + to_path, from_file)
 
     @command()
     def do_search(self, string):

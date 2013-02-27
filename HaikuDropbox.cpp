@@ -305,13 +305,19 @@ parse_command(BString command)
   else if(command.Compare("FILE ",5) == 0)
   {
     BString path, dirpath;
-    command.CopyInto(path,5,command.FindLast(" ") - 5);
+    int32 last_space = command.FindLast(" ");
+    command.CopyInto(path,5,last_space - 5);
 
     path.CopyInto(dirpath,0,path.FindLast("/"));
     create_local_directory(&dirpath);
 
     printf("create a file at |%s|\n",path.String());
     get_or_put("db_get.py",path.String(), db_to_local_filepath(path.String()));
+
+    BString parent_rev;
+    command.CopyInto(parent_rev,last_space + 1, command.CountChars() - (last_space+1));
+    BNode node = BNode(db_to_local_filepath(path.String()).String());
+    node.WriteAttr("parent_rev",B_STRING_TYPE,0,(void*)parent_rev.String(),parent_rev.Length());
   }
   else if(command.Compare("FOLDER ",7) == 0)
   {
@@ -420,6 +426,11 @@ App::MessageReceived(BMessage *msg)
             else
             {
               add_file_to_dropbox(path.Path());
+              //make add_file return real name and the parent_rev
+              // ...and whether the real name is the one we picked?
+              // get BNode of new file
+              // set parent_rev attr
+              //mv file if needed
               watch_entry(&new_file,B_WATCH_STAT);
             }
             break;
