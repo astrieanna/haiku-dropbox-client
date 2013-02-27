@@ -238,18 +238,18 @@ watch_entry(const BEntry *entry, int flag)
 * add the relevant BFile and BPath to the global tracking lists
 * (tracked_files and tracked_filepaths)
 */
-void
-track_file(App *app, BEntry *new_file)
+App::void
+track_file(BEntry *new_file)
 {
   BFile *file = new BFile(new_file, B_READ_ONLY);
-  app->tracked_files.AddItem((void*)file);
+  this->tracked_files.AddItem((void*)file);
   BPath *path = new BPath;
   new_file->GetPath(path);
-  app->tracked_filepaths.AddItem((void*)path);
+  this->tracked_filepaths.AddItem((void*)path);
 }
 
-void
-recursive_watch(App *app, BDirectory *dir)
+App::void
+recursive_watch(BDirectory *dir)
 {
   status_t err,err2;
 
@@ -263,12 +263,12 @@ recursive_watch(App *app, BDirectory *dir)
   while(err == B_OK)
   {
     //put this file in global list
-    track_file(app,&entry);
+    this->track_file(&entry);
 
     if(file->IsDirectory())
     {
       watch_entry(&entry,B_WATCH_DIRECTORY);
-      recursive_watch(app,&BDirectory(&entry));
+      this->recursive_watch(&BDirectory(&entry));
     }
     else
     {
@@ -279,15 +279,15 @@ recursive_watch(App *app, BDirectory *dir)
   }
 }
 
-int32
-find_nref_in_tracked_files(App *app, node_ref target)
+App::int32
+find_nref_in_tracked_files(node_ref target)
 {
   node_ref current_nref;
   BFile * current_file;
   int32 ktr = 0;
-  int32 limit = app->tracked_files.CountItems();
+  int32 limit = this->tracked_files.CountItems();
 
-  while((current_file = (BFile *)app->tracked_files.ItemAt(ktr++)) && ktr<=limit)
+  while((current_file = (BFile *)this->tracked_files.ItemAt(ktr++)) && ktr<=limit)
   {
     current_file->GetNodeRef(&current_nref);
     if(target == current_nref)
@@ -371,7 +371,7 @@ App::App(void)
   }
 
   //watch all the child files for edits and the folders for create/delete/move
-  recursive_watch(this,&dir);
+  this->recursive_watch(&dir);
 }
 
 
@@ -411,12 +411,12 @@ App::MessageReceived(BMessage *msg)
 
             BEntry new_file = BEntry(&ref);
             new_file.GetPath(&path);
-            track_file(this,&new_file);
+            this->track_file(&new_file);
 
             if(new_file.IsDirectory())
             {
                add_folder_to_dropbox(path.Path());
-               recursive_watch(this,&BDirectory(&new_file));
+               this->recursive_watch(&BDirectory(&new_file));
             }
             else
             {
@@ -438,7 +438,7 @@ App::MessageReceived(BMessage *msg)
             msg->FindInt32("device", &nref.device);
             msg->FindInt64("node", &nref.node);
 
-            int32 index = find_nref_in_tracked_files(this,nref);
+            int32 index = this->find_nref_in_tracked_files(nref);
             if(index >= 0)
             {
               BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
@@ -462,7 +462,7 @@ App::MessageReceived(BMessage *msg)
             msg->FindInt32("device", &nref.device);
             msg->FindInt64("node", &nref.node);
 
-            int32 index = find_nref_in_tracked_files(this,nref);
+            int32 index = this->find_nref_in_tracked_files(nref);
             if(index >= 0)
             {
               BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
