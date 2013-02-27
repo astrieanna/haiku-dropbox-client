@@ -212,6 +212,7 @@ create_local_directory(BString *dropbox_path)
     local_path->Append(*dropbox_path);
     status_t err = create_directory(local_path->String(), 0x0777);
     printf("Create local dir %s: %s\n",local_path->String(),strerror(err));
+    delete local_path;
 }
 
 void
