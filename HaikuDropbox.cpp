@@ -186,20 +186,6 @@ add_folder_to_dropbox(const char * filepath)
 }
 
 /*
-* TODO
-* Given a "file/folder moved" message,
-* figure out whether to call add or delete
-* and with what file path
-* and then call add/delete.
-*/
-void
-moved_file(BMessage *msg)
-{
-  //is this file being move into or out of ~/Dropbox?
-  printf("Local file moved. TODO: sync to remote");
-}
-
-/*
 * Given a local file path,
 * update the corresponding file on Dropbox
 */
