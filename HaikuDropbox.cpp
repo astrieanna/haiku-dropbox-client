@@ -433,7 +433,70 @@ App::MessageReceived(BMessage *msg)
           case B_ENTRY_MOVED:
           {
             printf("MOVED FILE\n");
-            moved_file(msg);
+            msg->PrintToStream();
+            entry_ref eref;
+            BDirectory from_dir, to_dir;
+            node_ref from_ref,to_ref,nref;
+            BPath path;
+            const char* name;
+
+            msg->FindInt32("device",&from_ref.device);
+            msg->FindInt32("device",&to_ref.device);
+            msg->FindInt32("device",&eref.device);
+            msg->FindInt32("device",&nref.device);
+
+            msg->FindInt64("from directory",&from_ref.node);
+            msg->FindInt64("to directory",&to_ref.node);
+            msg->FindInt64("to directory",&eref.directory);
+
+            msg->FindInt64("node",&nref.node);
+
+            msg->FindString("name",&name);
+            eref.set_name(name);
+
+            err = from_dir.SetTo(&from_ref);
+            err = to_dir.SetTo(&to_ref);
+
+            BEntry dest_entry = BEntry(&eref);
+            printf("Initialized: %d\n",dest_entry.InitCheck());
+            if(dest_entry.InitCheck())
+            {
+              BPath path;
+              dest_entry.GetPath(&path);
+              printf("Path: %s\n", path.Path());
+            }
+            BEntry test = BEntry("/boot/home/Dropbox/hi");
+            BDirectory dropbox_local = BDirectory(local_path_string);
+            printf("Should be true: %d\n",dropbox_local.Contains(&test));
+            bool into_dropbox = dropbox_local.Contains(&dest_entry);
+            printf("into_dropbox: %d\n",into_dropbox);
+            int32 index = this->find_nref_in_tracked_files(nref);
+            if((index >= 0) && into_dropbox)
+            {
+              //moving within dropbox
+              BPath *old_path = (BPath*)this->tracked_filepaths.ItemAt(index);
+              BPath new_path;
+              dest_entry.GetPath(&new_path);
+              get_or_put("db_mv.py",local_to_db_filepath(old_path->Path()),local_to_db_filepath(new_path.Path()));
+              printf("moved the file on remote :)\n");
+            }
+            else if(index >= 0)
+            {
+              //moving out of dropbox
+              printf("moving the file out of dropbox\n");
+            }
+            else if(into_dropbox)
+            {
+              //moving into dropbox
+              printf("moving file into dropbox\n");
+            }
+            else
+            {
+              //why did I get this message?
+              printf("moving unrelated file...?\n");
+            }
+
+            printf("moving file of name %s\n",name);
             break;
           }
           case B_ENTRY_REMOVED:
