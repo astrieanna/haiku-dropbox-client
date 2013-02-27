@@ -132,12 +132,20 @@ one_path_arg(const char *cmd, const char *path)
 
   if(pid < 0)
   {
+    return output;
+  }
+  else if(pid == 0)
+  {
     dup2(fd[0],STDOUT_FILENO);
-    execlp("python","python",cmd,path);
+    execlp("python","python",cmd,path,(char*)0);
   }
   else //parent
   {
     dup2(fd[1],STDIN_FILENO);
+
+    int status;
+    waitpid(pid, &status, 0);
+
     while(fgets(buf,BUFSIZ,stdin) != NULL)
       output->Append(buf);
   }
@@ -153,8 +161,9 @@ one_path_arg(const char *cmd, const char *path)
 void
 delete_file_on_dropbox(const char * filepath)
 {
-  printf("Telling Dropbox to Delete\n");
-  one_path_arg("db_rm.py",local_to_db_filepath(filepath));
+  printf("Telling Dropbox to Delete: %s\n",local_to_db_filepath(filepath).String());
+  one_path_arg("db_rm.py",local_to_db_filepath(filepath).String());
+  printf("Back from python\n");
 }
 
 /*
@@ -476,6 +485,11 @@ App::MessageReceived(BMessage *msg)
             {
               //moving out of dropbox
               printf("moving the file out of dropbox\n");
+              BPath *old_path = (BPath*)this->tracked_filepaths.ItemAt(index);
+              delete_file_on_dropbox(old_path->Path());
+              printf("old path: %s\n",old_path->Path());
+              this->tracked_files.RemoveItem(index);
+              this->tracked_filepaths.RemoveItem(index);
             }
             else if(into_dropbox)
             {
@@ -505,8 +519,10 @@ App::MessageReceived(BMessage *msg)
               printf("local file %s deleted\n",path->Path());
 
               delete_file_on_dropbox(path->Path());
+              printf("Back in REMOVE\n");
               this->tracked_files.RemoveItem(index);
               this->tracked_filepaths.RemoveItem(index);
+              printf("Done removing from tracking lists\n");
             }
             else
             {
