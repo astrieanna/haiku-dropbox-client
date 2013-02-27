@@ -370,8 +370,12 @@ App::App(void)
       printf("Watch Node: Not OK\n");
   }
 
+  printf("Done watching root directory\n");
+
   //watch all the child files for edits and the folders for create/delete/move
   this->recursive_watch(&dir);
+
+  printf("Done watching and tracking all children of ~/Dropbox.\n");
 }
 
 
