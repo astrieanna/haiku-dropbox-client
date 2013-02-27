@@ -420,7 +420,8 @@ App::MessageReceived(BMessage *msg)
             if(new_file.IsDirectory())
             {
                add_folder_to_dropbox(path.Path());
-               this->recursive_watch(&BDirectory(&new_file));
+               BDirectory new_dir = BDirectory(&new_file);
+               this->recursive_watch(&new_dir);
             }
             else
             {
