@@ -10,5 +10,5 @@ def main(path):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print >> stderr, "usage: python db_rm.py <dropbox path>"
+        print "usage: python db_rm.py <dropbox path>"
     main(sys.argv[1])

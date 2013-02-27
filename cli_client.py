@@ -100,8 +100,7 @@ class DropboxTerm(cmd.Cmd):
     @command()
     def do_rm(self, path):
         """delete a file or directory"""
-        metadata = self.api_client.file_delete(self.current_path + "/" + path)
-        print >> sys.stderr, "[%s]" % repr(metadata)
+        self.api_client.file_delete(self.current_path + "/" + path)
 
     @command()
     def do_mv(self, from_path, to_path):
