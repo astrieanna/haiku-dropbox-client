@@ -213,7 +213,8 @@ update_file_in_dropbox(const char * filepath)
 void
 create_local_directory(BString *dropbox_path)
 {
-    create_directory(BString(local_path_string) << dropbox_path, 0x0777);
+    status_t err = create_directory(BString(local_path_string) << dropbox_path, 0x0777);
+    printf("%s\n",strerror(err));
 }
 
 void
@@ -249,10 +250,7 @@ App::track_file(BEntry *new_file)
 void
 App::recursive_watch(BDirectory *dir)
 {
-  status_t err,err2;
-
-  BPath *path;
-  BFile *file;
+  status_t err;
 
   BEntry entry;
   err = dir->GetNextEntry(&entry);
@@ -262,11 +260,13 @@ App::recursive_watch(BDirectory *dir)
   {
     //put this file in global list
     this->track_file(&entry);
-
-    if(file->IsDirectory())
+    BFile file = BFile(&entry,B_READ_ONLY);
+    if(file.IsDirectory())
     {
       watch_entry(&entry,B_WATCH_DIRECTORY);
-      this->recursive_watch(&BDirectory(&entry));
+      BDirectory *ndir = new BDirectory(&entry);
+      this->recursive_watch(ndir);
+      delete ndir;
     }
     else
     {
@@ -356,6 +356,8 @@ App::App(void)
   {
     (void) parse_command(line); //TODO: do something more appropriate with return
   }
+
+  printf("Done pulling changes, now to start tracking\n");
 
   //start watching ~/Dropbox folder contents (create, delete, move)
   BDirectory dir(local_path_string_noslash); //don't use ~ here
