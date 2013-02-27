@@ -238,8 +238,8 @@ watch_entry(const BEntry *entry, int flag)
 * add the relevant BFile and BPath to the global tracking lists
 * (tracked_files and tracked_filepaths)
 */
-App::void
-track_file(BEntry *new_file)
+void
+App::track_file(BEntry *new_file)
 {
   BFile *file = new BFile(new_file, B_READ_ONLY);
   this->tracked_files.AddItem((void*)file);
@@ -248,8 +248,8 @@ track_file(BEntry *new_file)
   this->tracked_filepaths.AddItem((void*)path);
 }
 
-App::void
-recursive_watch(BDirectory *dir)
+void
+App::recursive_watch(BDirectory *dir)
 {
   status_t err,err2;
 
@@ -279,8 +279,8 @@ recursive_watch(BDirectory *dir)
   }
 }
 
-App::int32
-find_nref_in_tracked_files(node_ref target)
+int32
+App::find_nref_in_tracked_files(node_ref target)
 {
   node_ref current_nref;
   BFile * current_file;
