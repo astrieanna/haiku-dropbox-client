@@ -458,16 +458,8 @@ App::MessageReceived(BMessage *msg)
             err = to_dir.SetTo(&to_ref);
 
             BEntry dest_entry = BEntry(&eref);
-            printf("Initialized: %d\n",dest_entry.InitCheck());
-            if(dest_entry.InitCheck())
-            {
-              BPath path;
-              dest_entry.GetPath(&path);
-              printf("Path: %s\n", path.Path());
-            }
             BEntry test = BEntry("/boot/home/Dropbox/hi");
             BDirectory dropbox_local = BDirectory(local_path_string);
-            printf("Should be true: %d\n",dropbox_local.Contains(&test));
             bool into_dropbox = dropbox_local.Contains(&dest_entry);
             printf("into_dropbox: %d\n",into_dropbox);
             int32 index = this->find_nref_in_tracked_files(nref);
