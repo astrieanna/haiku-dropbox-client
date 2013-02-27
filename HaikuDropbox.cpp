@@ -163,7 +163,6 @@ delete_file_on_dropbox(const char * filepath)
 {
   printf("Telling Dropbox to Delete: %s\n",local_to_db_filepath(filepath).String());
   one_path_arg("db_rm.py",local_to_db_filepath(filepath).String());
-  printf("Back from python\n");
 }
 
 /*
@@ -487,7 +486,6 @@ App::MessageReceived(BMessage *msg)
               printf("moving the file out of dropbox\n");
               BPath *old_path = (BPath*)this->tracked_filepaths.ItemAt(index);
               delete_file_on_dropbox(old_path->Path());
-              printf("old path: %s\n",old_path->Path());
               this->tracked_files.RemoveItem(index);
               this->tracked_filepaths.RemoveItem(index);
             }
@@ -519,10 +517,8 @@ App::MessageReceived(BMessage *msg)
               printf("local file %s deleted\n",path->Path());
 
               delete_file_on_dropbox(path->Path());
-              printf("Back in REMOVE\n");
               this->tracked_files.RemoveItem(index);
               this->tracked_filepaths.RemoveItem(index);
-              printf("Done removing from tracking lists\n");
             }
             else
             {
