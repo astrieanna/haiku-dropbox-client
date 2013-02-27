@@ -277,6 +277,23 @@ recursive_watch(BDirectory *dir)
   }
 }
 
+int32
+find_nref_in_tracked_files(node_ref target)
+{
+  node_ref current_nref;
+  BFile * current_file;
+  int32 ktr = 0;
+  while((current_file = (BFile *)this->tracked_files.ItemAt(ktr++)))
+  {
+    current_file->GetNodeRef(&current_nref);
+    if(target == current_nref)
+    {
+      return --ktr; //account for ++ in while
+    }
+  }
+}
+
+
 // Act on Deltas
 // TODO: consider moving some cases into separate functions
 int
@@ -442,22 +459,13 @@ App::MessageReceived(BMessage *msg)
           case B_STAT_CHANGED:
           {
             printf("EDITED FILE\n");
-            node_ref nref1,nref2;
-            msg->FindInt32("device",&nref1.device);
-            msg->FindInt64("node",&nref1.node);
-            BFile * filePtr;
-            int32 ktr = 0;
-            while((filePtr = (BFile *)this->tracked_files.ItemAt(ktr++)))
-            {
-              filePtr->GetNodeRef(&nref2);
-              if(nref1 == nref2)
-              {
-                BPath *path;
-                path = (BPath*)this->tracked_filepaths.ItemAt(ktr-1);
-                update_file_in_dropbox(path->Path());
-                break;
-              }
-            }
+            node_ref nref;
+            msg->FindInt32("device", &nref.device);
+            msg->FindInt64("node", &nref.node);
+
+            int32 index = find_nref_in_tracked_files(nref);
+            BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
+            update_file_in_dropbox(path->Path());
             break;
           }
           default:
