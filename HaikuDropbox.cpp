@@ -283,7 +283,9 @@ find_nref_in_tracked_files(node_ref target)
   node_ref current_nref;
   BFile * current_file;
   int32 ktr = 0;
-  while((current_file = (BFile *)this->tracked_files.ItemAt(ktr++)))
+  int32 limit = this->tracked_files.CountItems();
+
+  while((current_file = (BFile *)this->tracked_files.ItemAt(ktr++)) && ktr<=limit)
   {
     current_file->GetNodeRef(&current_nref);
     if(target == current_nref)
@@ -429,31 +431,18 @@ App::MessageReceived(BMessage *msg)
           case B_ENTRY_REMOVED:
           {
             printf("DELETED FILE\n");
-            node_ref nref, cref;
-            msg->FindInt32("device",&nref.device);
-            msg->FindInt64("node",&nref.node);
-            BFile *filePtr;
-            int32 ktr = 0;
-            int32 limit = this->tracked_files.CountItems();
-            printf("About to loop %d times\n", limit);
-            while((filePtr = (BFile*)this->tracked_files.ItemAt(ktr))&&(ktr<limit))
-            {
-              printf("In loop.\n");
-              filePtr->GetNodeRef(&cref);
-              printf("GotNodeRef\n");
-              if(nref == cref)
-              {
-                printf("Deleting it\n");
-                BPath *path = (BPath*)this->tracked_filepaths.ItemAt(ktr);
-                printf("%s\n",path->Path());
-                delete_file_on_dropbox(path->Path());
+            node_ref nref;
+            msg->FindInt32("device", &nref.device);
+            msg->FindInt64("node", &nref.node);
 
-                this->tracked_files.RemoveItem(ktr);
-                this->tracked_filepaths.RemoveItem(ktr);
-                break; //break out of loop
-              }
-              ktr++;
-            }
+            int32 index = find_nref_in_tracked_files(nref);
+            BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
+            printf("local file %s deleted\n",path->Path());
+
+            delete_file_on_dropbox(path->Path());
+            this->tracked_files.RemoveItem(index);
+            this->tracked_filepaths.RemoveItem(index);
+
             break;
           }
           case B_STAT_CHANGED:
