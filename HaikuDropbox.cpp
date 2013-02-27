@@ -293,6 +293,7 @@ find_nref_in_tracked_files(node_ref target)
       return --ktr; //account for ++ in while
     }
   }
+  return -1;
 }
 
 
@@ -436,12 +437,19 @@ App::MessageReceived(BMessage *msg)
             msg->FindInt64("node", &nref.node);
 
             int32 index = find_nref_in_tracked_files(nref);
-            BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
-            printf("local file %s deleted\n",path->Path());
+            if(index >= 0)
+            {
+              BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
+              printf("local file %s deleted\n",path->Path());
 
-            delete_file_on_dropbox(path->Path());
-            this->tracked_files.RemoveItem(index);
-            this->tracked_filepaths.RemoveItem(index);
+              delete_file_on_dropbox(path->Path());
+              this->tracked_files.RemoveItem(index);
+              this->tracked_filepaths.RemoveItem(index);
+            }
+            else
+            {
+              printf("could not find deleted file\n");
+            }
 
             break;
           }
@@ -453,8 +461,15 @@ App::MessageReceived(BMessage *msg)
             msg->FindInt64("node", &nref.node);
 
             int32 index = find_nref_in_tracked_files(nref);
-            BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
-            update_file_in_dropbox(path->Path());
+            if(index >= 0)
+            {
+              BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
+              update_file_in_dropbox(path->Path());
+            }
+            else
+            {
+              printf("Could not find edited file\n");
+            }
             break;
           }
           default:
