@@ -3,6 +3,9 @@
 
 #include <Application.h>
 #include <List.h>
+#include <Directory.h>
+#include <Entry.h>
+#include <Node.h>
 
 class App: public BApplication
 {

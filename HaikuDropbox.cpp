@@ -3,9 +3,7 @@
 #include <sys/wait.h>
 
 #include "App.h"
-#include <Directory.h>
 #include <NodeMonitor.h>
-#include <Entry.h>
 #include <Path.h>
 #include <String.h>
 #include <File.h>
