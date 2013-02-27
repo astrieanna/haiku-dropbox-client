@@ -110,12 +110,7 @@ get_or_put(const char *cmd, const char *path1, const char *path2)
 
     //use read-end of pipe to fill in BString return value.
     while(fgets(buf,BUFSIZ,stdin) !=NULL)
-    {
-      output->Append("RAWR");
       output->Append(buf);
-    }
-    printf("output:\n%s\n",output->String());
-
   }
   return output;
 
@@ -213,8 +208,10 @@ update_file_in_dropbox(const char * filepath)
 void
 create_local_directory(BString *dropbox_path)
 {
-    status_t err = create_directory(BString(local_path_string) << dropbox_path, 0x0777);
-    printf("%s\n",strerror(err));
+    BString *local_path = new BString(local_path_string);
+    local_path->Append(*dropbox_path);
+    status_t err = create_directory(local_path->String(), 0x0777);
+    printf("Create local dir %s: %s\n",local_path->String(),strerror(err));
 }
 
 void
@@ -306,7 +303,9 @@ parse_command(BString command)
   {
     printf("Burn Everything. 8D\n");
     run_script("rm -rf ~/Dropbox"); //TODO: use native API, not shell command
-    create_local_directory(&BString(""));
+    BString *str = new BString;
+    create_local_directory(str);
+    delete str;
   }
   else if(command.Compare("FILE ",5) == 0)
   {
