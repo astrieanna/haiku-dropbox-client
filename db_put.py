@@ -8,6 +8,7 @@ def main(src,dest):
 
     metadata = term.do_put(src,dest)
     print "%s %s" % (metadata['path'],metadata['rev'])
+    print >> sys.stderr, "%s %s" % (metadata['path'],metadata['rev'])
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:

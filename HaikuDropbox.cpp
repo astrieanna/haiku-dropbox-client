@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 #include "App.h"
 #include <NodeMonitor.h>
@@ -81,13 +82,13 @@ run_script(const char *cmd)
 BString*
 get_or_put(const char *cmd, const char *path1, const char *path2)
 {
-  pid_t pid = fork();
   BString *output = new BString;
   char buf[BUFSIZ];
 
   //open pipe
   int fd[2];
   pipe(fd);
+  pid_t pid = fork();
 
   if(pid < 0)
   {
@@ -97,21 +98,24 @@ get_or_put(const char *cmd, const char *path1, const char *path2)
   {
     //child
     //make stdout the pipe
-    dup2(fd[0],STDOUT_FILENO);
+    close(fd[0]);
+    dup2(fd[1],STDOUT_FILENO);
     execlp("python","python",cmd,path1,path2,(char*)0);
   }
   else //parent
   {
-    dup2(fd[1],STDIN_FILENO);
+    close(fd[1]);
+    dup2(fd[0],STDIN_FILENO);
 
     //wait for child process to finish
     int status;
     waitpid(pid, &status, 0);
 
     //use read-end of pipe to fill in BString return value.
-    while(fgets(buf,BUFSIZ,stdin) !=NULL)
+    while(read(fd[0],buf,BUFSIZ) > 0)
       output->Append(buf);
   }
+  printf("output:|%s|\n",output->String());
   return output;
 
 }
