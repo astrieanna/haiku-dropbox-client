@@ -195,7 +195,7 @@ void
 moved_file(BMessage *msg)
 {
   //is this file being move into or out of ~/Dropbox?
-  printf("Local file moved. TODO: sync to remote")
+  printf("Local file moved. TODO: sync to remote");
 }
 
 /*
@@ -215,13 +215,15 @@ update_file_in_dropbox(const char * filepath)
 void
 create_local_directory(BString *dropbox_path)
 {
-    create_directory(BString(local_path_string) << path, 0x0777);
+    create_directory(BString(local_path_string) << dropbox_path, 0x0777);
 }
 
 void
 watch_entry(const BEntry *entry, int flag)
 {
   node_ref nref;
+  status_t err;
+
   err = entry->GetNodeRef(&nref);
   if(err == B_OK)
   {
@@ -237,17 +239,17 @@ watch_entry(const BEntry *entry, int flag)
 * (tracked_files and tracked_filepaths)
 */
 void
-track_file(BEntry *new_file)
+track_file(App *app, BEntry *new_file)
 {
   BFile *file = new BFile(new_file, B_READ_ONLY);
-  this->tracked_files.AddItem((void*)file);
+  app->tracked_files.AddItem((void*)file);
   BPath *path = new BPath;
   new_file->GetPath(path);
-  this->tracked_filepaths.AddItem((void*)path);
+  app->tracked_filepaths.AddItem((void*)path);
 }
 
 void
-recursive_watch(BDirectory *dir)
+recursive_watch(App *app, BDirectory *dir)
 {
   status_t err,err2;
 
@@ -261,12 +263,12 @@ recursive_watch(BDirectory *dir)
   while(err == B_OK)
   {
     //put this file in global list
-    track_file(&entry);
+    track_file(app,&entry);
 
     if(file->IsDirectory())
     {
       watch_entry(&entry,B_WATCH_DIRECTORY);
-      recursive_watch(&BDirectory(&entry));
+      recursive_watch(app,&BDirectory(&entry));
     }
     else
     {
@@ -278,14 +280,14 @@ recursive_watch(BDirectory *dir)
 }
 
 int32
-find_nref_in_tracked_files(node_ref target)
+find_nref_in_tracked_files(App *app, node_ref target)
 {
   node_ref current_nref;
   BFile * current_file;
   int32 ktr = 0;
-  int32 limit = this->tracked_files.CountItems();
+  int32 limit = app->tracked_files.CountItems();
 
-  while((current_file = (BFile *)this->tracked_files.ItemAt(ktr++)) && ktr<=limit)
+  while((current_file = (BFile *)app->tracked_files.ItemAt(ktr++)) && ktr<=limit)
   {
     current_file->GetNodeRef(&current_nref);
     if(target == current_nref)
@@ -306,7 +308,7 @@ parse_command(BString command)
   {
     printf("Burn Everything. 8D\n");
     run_script("rm -rf ~/Dropbox"); //TODO: use native API, not shell command
-    create_local_directory(BString(""));
+    create_local_directory(&BString(""));
   }
   else if(command.Compare("FILE ",5) == 0)
   {
@@ -369,7 +371,7 @@ App::App(void)
   }
 
   //watch all the child files for edits and the folders for create/delete/move
-  recursive_watch(&dir);
+  recursive_watch(this,&dir);
 }
 
 
@@ -409,17 +411,17 @@ App::MessageReceived(BMessage *msg)
 
             BEntry new_file = BEntry(&ref);
             new_file.GetPath(&path);
-            track_file(&new_file);
+            track_file(this,&new_file);
 
             if(new_file.IsDirectory())
             {
                add_folder_to_dropbox(path.Path());
-               recursive_watch(&BDirectory(new_file));
+               recursive_watch(this,&BDirectory(&new_file));
             }
             else
             {
               add_file_to_dropbox(path.Path());
-              watch_entry(new_file,B_WATCH_STAT);
+              watch_entry(&new_file,B_WATCH_STAT);
             }
             break;
           }
@@ -436,7 +438,7 @@ App::MessageReceived(BMessage *msg)
             msg->FindInt32("device", &nref.device);
             msg->FindInt64("node", &nref.node);
 
-            int32 index = find_nref_in_tracked_files(nref);
+            int32 index = find_nref_in_tracked_files(this,nref);
             if(index >= 0)
             {
               BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
@@ -460,7 +462,7 @@ App::MessageReceived(BMessage *msg)
             msg->FindInt32("device", &nref.device);
             msg->FindInt64("node", &nref.node);
 
-            int32 index = find_nref_in_tracked_files(nref);
+            int32 index = find_nref_in_tracked_files(this,nref);
             if(index >= 0)
             {
               BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
