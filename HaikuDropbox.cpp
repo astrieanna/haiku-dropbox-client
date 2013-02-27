@@ -218,6 +218,19 @@ create_local_directory(BString *dropbox_path)
     create_directory(BString(local_path_string) << path, 0x0777);
 }
 
+void
+watch_entry(const BEntry *entry, int flag)
+{
+  node_ref nref;
+  err = entry->GetNodeRef(&nref);
+  if(err == B_OK)
+  {
+    err = watch_node(&nref, flag, be_app_messenger);
+    if(err != B_OK)
+      printf("watch_entry: Not Ok.\n");
+  }
+}
+
 /*
 * Given a BEntry* representing a file (or folder)
 * add the relevant BFile and BPath to the global tracking lists
@@ -250,24 +263,14 @@ recursive_watch(BDirectory *dir)
     //put this file in global list
     track_file(&entry);
 
-    err2 = entry.GetNodeRef(&nref);
-    if(err2 == B_OK)
+    if(file->IsDirectory())
     {
-      if(file->IsDirectory())
-      {
-        err2 = watch_node(&nref, B_WATCH_DIRECTORY, be_app_messenger);
-        if(err2 != B_OK)
-          printf("Watch folder Node: Not OK\n";
-
-        BDirectory tmpdir = BDirectory(&entry);
-        recursive_watch(&tmpdir);
-      }
-      else
-      {
-        err2 = watch_node(&nref, B_WATCH_STAT, be_app_messenger); //watch for edits
-        if(err2 != B_OK)
-          printf("Watch file Node: Not OK\n";
-      }
+      watch_entry(&entry,B_WATCH_DIRECTORY);
+      recursive_watch(&BDirectory(&entry));
+    }
+    else
+    {
+      watch_entry(&entry,B_WATCH_STAT);
     }
 
     err = dir->GetNextEntry(&entry);
@@ -396,16 +399,7 @@ App::MessageReceived(BMessage *msg)
             else
             {
               add_file_to_dropbox(path.Path());
-
-              // listen for EDIT alerts on the new file
-              node_ref nref;
-              err = new_file.GetNodeRef(&nref);
-              if(err == B_OK)
-              {
-                err = watch_node(&nref, B_WATCH_STAT, be_app_messenger);
-                if(err != B_OK)
-                  printf("Watch new file %s: Not Ok.\n", path2->Path());
-              }
+              watch_entry(new_file,B_WATCH_STAT);
             }
             break;
           }
