@@ -454,9 +454,13 @@ App::MessageReceived(BMessage *msg)
 
               printf("path:|%s|\nparent_rev:|%s|\n",real_path->String(),parent_rev->String());
 
-              // get BNode of new file
+              BNode node = BNode(&new_file);
               // set parent_rev attr
-              //mv file if needed
+              node.WriteAttr("parent_rev",B_STRING_TYPE,0,(void*)parent_rev->String(),parent_rev->Length());
+              delete parent_rev;
+              //TODO:mv file if needed
+              
+              delete real_path;
               watch_entry(&new_file,B_WATCH_STAT);
             }
             break;
@@ -579,6 +583,11 @@ App::MessageReceived(BMessage *msg)
             if(index >= 0)
             {
               BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
+              BNode node = BNode(path->Path());
+              char parent_rev[12]; //9 characters, plus NULL, plus ..idk?
+              node.ReadAttr("parent_rev",B_STRING_TYPE, 0, (void*)parent_rev, 12);
+              printf("parent_rev:|%s|",parent_rev);
+              
               update_file_in_dropbox(path->Path());
             }
             else
