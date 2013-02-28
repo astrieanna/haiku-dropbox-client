@@ -173,10 +173,10 @@ delete_file_on_dropbox(const char * filepath)
 * Given the local file path of a new file,
 * run the script to upload it to Dropbox
 */
-void
+BString *
 add_file_to_dropbox(const char * filepath)
 {
-  get_or_put("db_put.py",filepath, local_to_db_filepath(filepath));
+  return get_or_put("db_put.py",filepath, local_to_db_filepath(filepath));
 }
 
 /*
@@ -382,6 +382,24 @@ App::App(void)
   printf("Done watching and tracking all children of ~/Dropbox.\n");
 }
 
+BString*
+parse_path(const BString *result)
+{
+  BString *path = new BString;
+  int32 last_space_in_first_line = result->FindLast(' ',result->FindFirst('\n'));
+  result->CopyInto(*path,0,last_space_in_first_line);
+  return path;
+}
+
+BString*
+parse_parent_rev(const BString *result)
+{
+  BString *parent_rev = new BString;
+  int32 eol = result->FindFirst('\n');
+  int32 last_space_in_first_line = result->FindLast(' ',eol);
+  result->CopyInto(*parent_rev,last_space_in_first_line + 1, eol - last_space_in_first_line - 1);
+  return parent_rev;
+}
 
 /*
 * Message Handling Function
@@ -429,9 +447,13 @@ App::MessageReceived(BMessage *msg)
             }
             else
             {
-              add_file_to_dropbox(path.Path());
-              //make add_file return real name and the parent_rev
-              // ...and whether the real name is the one we picked?
+              BString *result = add_file_to_dropbox(path.Path());
+              BString *real_path = parse_path(result);
+              BString *parent_rev = parse_parent_rev(result);
+              delete result;
+
+              printf("path:|%s|\nparent_rev:|%s|\n",real_path->String(),parent_rev->String());
+
               // get BNode of new file
               // set parent_rev attr
               //mv file if needed
