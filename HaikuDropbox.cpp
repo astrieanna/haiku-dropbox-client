@@ -75,6 +75,47 @@ run_script(const char *cmd)
   return output;
 }
 
+BString *
+run_python_script(char * argv[],int length)
+{
+  BString *output = new BString;
+  char buf[BUFSIZ];
+
+  int fd[2];
+  pipe(fd);
+  pid_t pid = fork();
+
+  if(pid < 0)
+    return output; //error
+  if(pid == 0)
+  {
+    close(fd[0]);
+    dup2(fd[1],STDOUT_FILENO);
+
+    char * real_argv[length + 2];
+    real_argv[0] = "python";
+    real_argv[length+1] = NULL;
+    for(int i=0; i<length;i++)
+      real_argv[i+1]=argv[i];
+
+    execvp("python",real_argv);
+  }
+  else //parent
+  {
+    close(fd[1]);
+    dup2(fd[0],STDIN_FILENO);
+
+    int status;
+    waitpid(pid, &status, 0);
+
+    while(read(fd[0],buf,BUFSIZ) > 0)
+      output->Append(buf);
+  }
+  printf("output:|%s|\n",output->String());
+  return output;
+
+}
+
 /*
 * Run a python script named cmd, with the arguments path1 and path2
 * Uses execlp to avoid any escaping issues with the path arguments
@@ -166,7 +207,15 @@ void
 delete_file_on_dropbox(const char * filepath)
 {
   printf("Telling Dropbox to Delete: %s\n",local_to_db_filepath(filepath).String());
-  one_path_arg("db_rm.py",local_to_db_filepath(filepath).String());
+  //one_path_arg("db_rm.py",local_to_db_filepath(filepath).String());
+  char * argv[2];
+  argv[0] = "db_rm.py";
+  BString db_filepath = local_to_db_filepath(filepath);
+  const char * tmp = db_filepath.String();
+  char not_const[db_filepath.CountChars()];
+  strcpy(not_const,tmp);
+  argv[1] = not_const;
+  run_python_script(argv,2);
 }
 
 /*
