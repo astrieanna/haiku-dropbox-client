@@ -53,28 +53,6 @@ get_next_line(BString *src, BString *dest)
   return B_OK;
 }
 
-
-// Run Python Scripts
-//TODO: Merge the 0,1,2 argument cases into 1 function.
-
-/*
-* Runs a command in the terminal, given the string you'd type
-*/
-BString*
-run_script(const char *cmd)
-{
-  char buf[BUFSIZ];
-  FILE *ptr;
-  BString *output = new BString;
-
-  if ((ptr = popen(cmd, "r")) != NULL)
-    while (fgets(buf, BUFSIZ, ptr) != NULL)
-       output->Append(buf);
-
-  (void) pclose(ptr); //TODO: what's the return type?
-  return output;
-}
-
 BString *
 run_python_script(char * argv[],int length)
 {
@@ -108,93 +86,16 @@ run_python_script(char * argv[],int length)
     int status;
     waitpid(pid, &status, 0);
 
-    while(read(fd[0],buf,BUFSIZ) > 0)
-      output->Append(buf);
+    int len = read(fd[0],buf,BUFSIZ);
+    while(len > 0)
+    {
+      output->Append(buf,len);
+      len = read(fd[0],buf,BUFSIZ);
+    } 
   }
   printf("output:|%s|\n",output->String());
   return output;
 
-}
-
-/*
-* Run a python script named cmd, with the arguments path1 and path2
-* Uses execlp to avoid any escaping issues with the path arguments
-*/
-BString*
-get_or_put(const char *cmd, const char *path1, const char *path2)
-{
-  BString *output = new BString;
-  char buf[BUFSIZ];
-
-  //open pipe
-  int fd[2];
-  pipe(fd);
-  pid_t pid = fork();
-
-  if(pid < 0)
-  {
-    return output; //error
-  }
-  if(pid == 0)
-  {
-    //child
-    //make stdout the pipe
-    close(fd[0]);
-    dup2(fd[1],STDOUT_FILENO);
-    execlp("python","python",cmd,path1,path2,(char*)0);
-  }
-  else //parent
-  {
-    close(fd[1]);
-    dup2(fd[0],STDIN_FILENO);
-
-    //wait for child process to finish
-    int status;
-    waitpid(pid, &status, 0);
-
-    //use read-end of pipe to fill in BString return value.
-    while(read(fd[0],buf,BUFSIZ) > 0)
-      output->Append(buf);
-  }
-  printf("output:|%s|\n",output->String());
-  return output;
-
-}
-
-/*
-* Runs a python script named cmd with one arg, path.
-* uses execlp to avoid escaping issues with path.
-*/
-BString*
-one_path_arg(const char *cmd, const char *path)
-{
-  pid_t pid = fork();
-  BString *output = new BString;
-  char buf[BUFSIZ];
-
-  int fd[2];
-  pipe(fd);
-
-  if(pid < 0)
-  {
-    return output;
-  }
-  else if(pid == 0)
-  {
-    dup2(fd[0],STDOUT_FILENO);
-    execlp("python","python",cmd,path,(char*)0);
-  }
-  else //parent
-  {
-    dup2(fd[1],STDIN_FILENO);
-
-    int status;
-    waitpid(pid, &status, 0);
-
-    while(fgets(buf,BUFSIZ,stdin) != NULL)
-      output->Append(buf);
-  }
-  return output;
 }
 
 // Talk to Dropbox
@@ -207,7 +108,6 @@ void
 delete_file_on_dropbox(const char * filepath)
 {
   printf("Telling Dropbox to Delete: %s\n",local_to_db_filepath(filepath).String());
-  //one_path_arg("db_rm.py",local_to_db_filepath(filepath).String());
   char * argv[2];
   argv[0] = "db_rm.py";
   BString db_filepath = local_to_db_filepath(filepath);
@@ -225,7 +125,21 @@ delete_file_on_dropbox(const char * filepath)
 BString *
 add_file_to_dropbox(const char * filepath)
 {
-  return get_or_put("db_put.py",filepath, local_to_db_filepath(filepath));
+  //return get_or_put("db_put.py",filepath, local_to_db_filepath(filepath));
+  char * argv[3];
+  argv[0] = "db_put.py";
+
+  BString db_filepath = local_to_db_filepath(filepath);
+  const char * tmp = db_filepath.String();
+  char not_const[db_filepath.CountChars()];
+  strcpy(not_const,tmp);
+  argv[2] = not_const;
+
+  char not_const2[strlen(filepath)];
+  strcpy(not_const2,filepath);
+  argv[1] = not_const2;
+
+  return run_python_script(argv,3);
 }
 
 /*
@@ -235,7 +149,15 @@ add_file_to_dropbox(const char * filepath)
 void
 add_folder_to_dropbox(const char * filepath)
 {
-  one_path_arg("db_mkdir.py",local_to_db_filepath(filepath));
+  //one_path_arg("db_mkdir.py",local_to_db_filepath(filepath));
+  char * argv[2];
+  argv[0] = "db_mkdir.py";
+
+  char not_const[strlen(filepath)];
+  strcpy(not_const,filepath);
+  argv[1] = not_const;
+
+  run_python_script(argv,2);
 }
 
 /*
@@ -350,7 +272,8 @@ parse_command(BString command)
   if(command.Compare("RESET\n") == 0)
   {
     printf("Burn Everything. 8D\n");
-    run_script("rm -rf ~/Dropbox"); //TODO: use native API, not shell command
+    //run_script("rm -rf ~/Dropbox"); //TODO: use native API, not shell command
+    printf("TODO: use native API to delete Dropbox folder\n");
     BString *str = new BString;
     create_local_directory(str);
     delete str;
@@ -365,7 +288,20 @@ parse_command(BString command)
     create_local_directory(&dirpath);
 
     printf("create a file at |%s|\n",path.String());
-    get_or_put("db_get.py",path.String(), db_to_local_filepath(path.String()));
+    //get_or_put("db_get.py",path.String(), db_to_local_filepath(path.String()));
+    char *argv[3];
+    argv[0] = "db_get.py";
+    char not_const1[path.CountChars()];
+    strcpy(not_const1,path.String());
+    argv[1] = not_const1;
+    BString tmp = db_to_local_filepath(path.String());
+    char not_const2[tmp.CountChars()];
+    strcpy(not_const2,tmp.String());
+    argv[2] = not_const2;
+
+    printf("python %s %s %s\n",argv[0],argv[1],argv[2]);
+    BString * b = run_python_script(argv,3);
+    delete b;
 
     BString parent_rev;
     command.CopyInto(parent_rev,last_space + 1, command.CountChars() - (last_space+1));
@@ -403,10 +339,14 @@ App::App(void)
   : BApplication("application/x-vnd.lh-MyDropboxClient")
 {
   //ask Dropbox for deltas!
-  BString *delta_commands = run_script("python db_delta.py");
+  char *argv[1];
+  argv[0] = "db_delta.py";
+  BString *delta_commands = run_python_script(argv,1);
   BString line;
+  printf("*************RAN DELTA\n");
   while(get_next_line(delta_commands,&line) == B_OK)
   {
+    printf("||%s||\n",line.String());
     (void) parse_command(line); //TODO: do something more appropriate with return
   }
 
@@ -553,7 +493,19 @@ App::MessageReceived(BMessage *msg)
               BPath *old_path = (BPath*)this->tracked_filepaths.ItemAt(index);
               BPath new_path;
               dest_entry.GetPath(&new_path);
-              get_or_put("db_mv.py",local_to_db_filepath(old_path->Path()),local_to_db_filepath(new_path.Path()));
+              //get_or_put("db_mv.py",local_to_db_filepath(old_path->Path()),local_to_db_filepath(new_path.Path()));
+              char *argv[3];
+              argv[0] = "db_mv.py";
+              BString opath = local_to_db_filepath(old_path->Path());
+              BString npath = local_to_db_filepath(new_path.Path());
+              char not_const_o[opath.CountChars()];
+              char not_const_n[npath.CountChars()];
+              strcpy(not_const_o,opath.String());
+              strcpy(not_const_n,npath.String());
+              argv[1] = not_const_o;
+              argv[2] = not_const_n;
+              run_python_script(argv,3);
+
               printf("moved the file on remote :)\n");
 
               old_path->SetTo(&dest_entry);
@@ -633,9 +585,9 @@ App::MessageReceived(BMessage *msg)
             {
               BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
               BNode node = BNode(path->Path());
-              char parent_rev[12]; //9 characters, plus NULL, plus ..idk?
-              node.ReadAttr("parent_rev",B_STRING_TYPE, 0, (void*)parent_rev, 12);
-              printf("parent_rev:|%s|",parent_rev);
+              char parent_rev[10]; //9 characters, plus NULL
+              node.ReadAttr("parent_rev",B_STRING_TYPE, 0, (void*)parent_rev, 10);
+              printf("parent_rev:|%s|\n",parent_rev);
               
               update_file_in_dropbox(path->Path());
             }
