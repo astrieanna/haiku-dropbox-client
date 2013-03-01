@@ -288,21 +288,18 @@ parse_command(BString command)
     create_local_directory(&dirpath);
 
     printf("create a file at |%s|\n",path.String());
-    //get_or_put("db_get.py",path.String(), db_to_local_filepath(path.String()));
     char *argv[3];
     argv[0] = "db_get.py";
-    char not_const1[path.CountChars()];
+    char not_const1[path.CountChars() + 1];
     strcpy(not_const1,path.String());
     argv[1] = not_const1;
     BString tmp = db_to_local_filepath(path.String());
-    char not_const2[tmp.CountChars()];
+    char not_const2[tmp.CountChars() + 1]; //plus one for null
     strcpy(not_const2,tmp.String());
     argv[2] = not_const2;
 
-    printf("python %s %s %s\n",argv[0],argv[1],argv[2]);
     BString * b = run_python_script(argv,3);
     delete b;
-
     BString parent_rev;
     command.CopyInto(parent_rev,last_space + 1, command.CountChars() - (last_space+1));
     BNode node = BNode(db_to_local_filepath(path.String()).String());
@@ -346,10 +343,10 @@ App::App(void)
   printf("*************RAN DELTA\n");
   while(get_next_line(delta_commands,&line) == B_OK)
   {
-    printf("||%s||\n",line.String());
-    (void) parse_command(line); //TODO: do something more appropriate with return
+    int x = parse_command(line); //TODO: do something more appropriate with return
+    if(x != B_OK)
+      break;
   }
-
   printf("Done pulling changes, now to start tracking\n");
 
   //start watching ~/Dropbox folder contents (create, delete, move)
