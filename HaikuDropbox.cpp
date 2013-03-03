@@ -179,12 +179,23 @@ parse_parent_rev(const BString *result)
   return parent_rev;
 }
 
+BString *
+get_parent_rev(BNode *node)
+{
+  int32 len;
+  node->ReadAttr("parent_rev_len",B_INT32_TYPE,0,(void*)&len,4);
+  char str[len];
+  node->ReadAttr("parent_rev",B_STRING_TYPE, 0, (void*)str, len);
+  BString * parent_rev = new BString(str);
+  return parent_rev;
+}
+
 void
 set_parent_rev(BNode *node, const BString *rev)
 {
   //TODO: turn off watching on this node
 
-  int32 len = rev->Length();
+  int32 len = rev->Length(); //assuming length includes NULL terminator
   const char * str = rev->String();
   node->WriteAttr("parent_rev_len"
                 , B_INT32_TYPE
@@ -206,7 +217,7 @@ set_parent_rev(BNode *node, const BString *rev)
 * update the corresponding file on Dropbox
 */
 void
-update_file_in_dropbox(const char * filepath, char*parent_rev)
+update_file_in_dropbox(const char * filepath, const char *parent_rev)
 {
   printf("File edited locally. TODO: properly sync %s to dropbox.\n", filepath);
   //add_file_to_dropbox(filepath); //need to utilize parent_rev
@@ -223,7 +234,9 @@ update_file_in_dropbox(const char * filepath, char*parent_rev)
   strcpy(not_const2,filepath);
   argv[1] = not_const2;
 
-  argv[3] = parent_rev;
+  char not_const3[strlen(parent_rev)];
+  strcpy(not_const3,parent_rev);
+  argv[3] = not_const3;
 
   BString *result = run_python_script(argv,4);
   BString *real_path = parse_path(result);
@@ -633,12 +646,11 @@ App::MessageReceived(BMessage *msg)
             {
               BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
               BNode node = BNode(path->Path());
-              char parent_rev[11]; //9 characters plus NULL
-              node.ReadAttr("parent_rev",B_STRING_TYPE, 0, (void*)parent_rev, 11);
-              parent_rev[10] = '\0';
-              printf("parent_rev:|%s|\n",parent_rev);
+              //node.ReadAttr("parent_rev",B_STRING_TYPE, 0, (void*)parent_rev, 11);
+              BString * rev = get_parent_rev(&node);
+              printf("parent_rev:|%s|\n",rev->String());
               
-              update_file_in_dropbox(path->Path(),parent_rev);
+              update_file_in_dropbox(path->Path(),rev->String());
             }
             else
             {
