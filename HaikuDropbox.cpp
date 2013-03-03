@@ -357,11 +357,11 @@ parse_command(BString command)
   if(command.Compare("RESET\n") == 0)
   {
     printf("Burn Everything. 8D\n");
-    //run_script("rm -rf ~/Dropbox"); //TODO: use native API, not shell command
-    printf("TODO: use native API to delete Dropbox folder\n");
-    BString *str = new BString;
-    create_local_directory(str);
-    delete str;
+    BEntry entry = BEntry(local_path_string);
+    int32 err = entry.Remove();
+    printf("Error: %s\n",strerror(err));
+    BString str = BString(local_path_string);
+    create_local_directory(&str);
   }
   else if(command.Compare("FILE ",5) == 0)
   {
