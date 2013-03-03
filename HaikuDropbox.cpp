@@ -49,7 +49,7 @@ get_next_line(BString *src, BString *dest)
   if(eol == B_ERROR)
     return B_ERROR;
 
-  src->MoveInto(*dest,0,eol+1); //TODO: does this ever return an error code?
+  src->MoveInto(*dest,0,eol+1);
   return B_OK;
 }
 
@@ -223,8 +223,6 @@ set_parent_rev(BNode *node, const BString *rev)
 void
 update_file_in_dropbox(const char * filepath, const char *parent_rev)
 {
-  printf("File edited locally. TODO: properly sync %s to dropbox.\n", filepath);
-  //add_file_to_dropbox(filepath); //need to utilize parent_rev
   char * argv[4];
   argv[0] = "db_put.py";
 
@@ -252,6 +250,7 @@ update_file_in_dropbox(const char * filepath, const char *parent_rev)
   BNode node = BNode(filepath);
   set_parent_rev(&node,new_parent_rev);
   delete new_parent_rev;
+
   //TODO:mv file if needed
               
   delete real_path;
@@ -429,7 +428,7 @@ App::App(void)
   printf("*************RAN DELTA\n");
   while(get_next_line(delta_commands,&line) == B_OK)
   {
-    int x = parse_command(line); //TODO: do something more appropriate with return
+    int x = parse_command(line); 
     if(x != B_OK)
       break;
   }
