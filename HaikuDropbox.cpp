@@ -160,15 +160,67 @@ add_folder_to_dropbox(const char * filepath)
   run_python_script(argv,2);
 }
 
+BString*
+parse_path(const BString *result)
+{
+  BString *path = new BString;
+  int32 last_space_in_first_line = result->FindLast(' ',result->FindFirst('\n'));
+  result->CopyInto(*path,0,last_space_in_first_line);
+  return path;
+}
+
+BString*
+parse_parent_rev(const BString *result)
+{
+  BString *parent_rev = new BString;
+  int32 eol = result->FindFirst('\n');
+  int32 last_space_in_first_line = result->FindLast(' ',eol);
+  result->CopyInto(*parent_rev,last_space_in_first_line + 1, eol - last_space_in_first_line - 1);
+  return parent_rev;
+}
+
 /*
 * Given a local file path,
 * update the corresponding file on Dropbox
 */
 void
-update_file_in_dropbox(const char * filepath)
+update_file_in_dropbox(const char * filepath, char*parent_rev)
 {
   printf("File edited locally. TODO: properly sync %s to dropbox.\n", filepath);
-  add_file_to_dropbox(filepath); //need to utilize parent_rev
+  //add_file_to_dropbox(filepath); //need to utilize parent_rev
+  char * argv[4];
+  argv[0] = "db_put.py";
+
+  BString db_filepath = local_to_db_filepath(filepath);
+  const char * tmp = db_filepath.String();
+  char not_const[db_filepath.CountChars()];
+  strcpy(not_const,tmp);
+  argv[2] = not_const;
+
+  char not_const2[strlen(filepath)];
+  strcpy(not_const2,filepath);
+  argv[1] = not_const2;
+
+  argv[3] = parent_rev;
+
+  BString *result = run_python_script(argv,4);
+  BString *real_path = parse_path(result);
+  BString *new_parent_rev = parse_parent_rev(result);
+  delete result;
+
+  printf("path:|%s|\nparent_rev:|%s|\n",real_path->String(),new_parent_rev->String());
+
+  BNode node = BNode(filepath);
+  node.WriteAttr( "parent_rev"
+                , B_STRING_TYPE
+                , 0
+                , (void*)new_parent_rev->String()
+                , new_parent_rev->Length());
+  delete new_parent_rev;
+  //TODO:mv file if needed
+              
+  delete real_path;
+  //watch_entry(&new_file,B_WATCH_STAT);
 }
 
 //Local filesystem stuff
@@ -368,25 +420,6 @@ App::App(void)
   printf("Done watching and tracking all children of ~/Dropbox.\n");
 }
 
-BString*
-parse_path(const BString *result)
-{
-  BString *path = new BString;
-  int32 last_space_in_first_line = result->FindLast(' ',result->FindFirst('\n'));
-  result->CopyInto(*path,0,last_space_in_first_line);
-  return path;
-}
-
-BString*
-parse_parent_rev(const BString *result)
-{
-  BString *parent_rev = new BString;
-  int32 eol = result->FindFirst('\n');
-  int32 last_space_in_first_line = result->FindLast(' ',eol);
-  result->CopyInto(*parent_rev,last_space_in_first_line + 1, eol - last_space_in_first_line - 1);
-  return parent_rev;
-}
-
 /*
 * Message Handling Function
 * If it's a node monitor message,
@@ -582,11 +615,12 @@ App::MessageReceived(BMessage *msg)
             {
               BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
               BNode node = BNode(path->Path());
-              char parent_rev[10]; //9 characters, plus NULL
-              node.ReadAttr("parent_rev",B_STRING_TYPE, 0, (void*)parent_rev, 10);
+              char parent_rev[11]; //9 characters plus NULL
+              node.ReadAttr("parent_rev",B_STRING_TYPE, 0, (void*)parent_rev, 11);
+              parent_rev[10] = '\0';
               printf("parent_rev:|%s|\n",parent_rev);
               
-              update_file_in_dropbox(path->Path());
+              update_file_in_dropbox(path->Path(),parent_rev);
             }
             else
             {

@@ -170,7 +170,7 @@ class DropboxTerm(cmd.Cmd):
         to_file.write(f.read())
 
     @command()
-    def do_put(self, from_path, to_path):
+    def do_put(self, from_path, to_path, rev):
         """
         Copy local file to Dropbox
 
@@ -179,7 +179,10 @@ class DropboxTerm(cmd.Cmd):
         """
         from_file = open(os.path.expanduser(from_path), "rb")
 
-        return self.api_client.put_file(self.current_path + "/" + to_path, from_file)
+        if rev == None:
+            return self.api_client.put_file(self.current_path + "/" + to_path, from_file)
+        else:
+            return self.api_client.put_file(self.current_path + "/" + to_path, from_file, parent_rev=rev)
 
     @command()
     def do_search(self, string):
