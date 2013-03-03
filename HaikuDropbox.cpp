@@ -179,6 +179,28 @@ parse_parent_rev(const BString *result)
   return parent_rev;
 }
 
+void
+set_parent_rev(BNode *node, const BString *rev)
+{
+  //TODO: turn off watching on this node
+
+  int32 len = rev->Length();
+  const char * str = rev->String();
+  node->WriteAttr("parent_rev_len"
+                , B_INT32_TYPE
+                , 0
+                , (void*)&len
+                , 4);
+  node->WriteAttr("parent_rev"
+                , B_STRING_TYPE
+                , 0
+                , (void*)str
+                , len);
+
+  //TODO: turn watching back on
+
+}
+
 /*
 * Given a local file path,
 * update the corresponding file on Dropbox
@@ -211,11 +233,7 @@ update_file_in_dropbox(const char * filepath, char*parent_rev)
   printf("path:|%s|\nparent_rev:|%s|\n",real_path->String(),new_parent_rev->String());
 
   BNode node = BNode(filepath);
-  node.WriteAttr( "parent_rev"
-                , B_STRING_TYPE
-                , 0
-                , (void*)new_parent_rev->String()
-                , new_parent_rev->Length());
+  set_parent_rev(&node,new_parent_rev);
   delete new_parent_rev;
   //TODO:mv file if needed
               
@@ -355,7 +373,7 @@ parse_command(BString command)
     BString parent_rev;
     command.CopyInto(parent_rev,last_space + 1, command.CountChars() - (last_space+1));
     BNode node = BNode(db_to_local_filepath(path.String()).String());
-    node.WriteAttr("parent_rev",B_STRING_TYPE,0,(void*)parent_rev.String(),parent_rev.Length());
+    set_parent_rev(&node,&parent_rev);
   }
   else if(command.Compare("FOLDER ",7) == 0)
   {
@@ -475,7 +493,7 @@ App::MessageReceived(BMessage *msg)
 
               BNode node = BNode(&new_file);
               // set parent_rev attr
-              node.WriteAttr("parent_rev",B_STRING_TYPE,0,(void*)parent_rev->String(),parent_rev->Length());
+              set_parent_rev(&node,parent_rev);
               delete parent_rev;
               //TODO:mv file if needed
               
