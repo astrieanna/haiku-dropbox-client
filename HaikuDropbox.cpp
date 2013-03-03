@@ -193,9 +193,14 @@ get_parent_rev(BNode *node)
 void
 set_parent_rev(BNode *node, const BString *rev)
 {
-  //TODO: turn off watching on this node
+  printf("setting parent_rev |%s| of len %d\n"
+        , rev->String()
+        , rev->CountChars() + 1);
+  node_ref nref;
+  node->GetNodeRef(&nref);
+  watch_node(&nref, B_STOP_WATCHING, be_app_messenger);
 
-  int32 len = rev->Length(); //assuming length includes NULL terminator
+  int32 len = rev->CountChars() + 1;
   const char * str = rev->String();
   node->WriteAttr("parent_rev_len"
                 , B_INT32_TYPE
@@ -208,8 +213,7 @@ set_parent_rev(BNode *node, const BString *rev)
                 , (void*)str
                 , len);
 
-  //TODO: turn watching back on
-
+  watch_node(&nref, B_WATCH_STAT, be_app_messenger);
 }
 
 /*
@@ -251,7 +255,6 @@ update_file_in_dropbox(const char * filepath, const char *parent_rev)
   //TODO:mv file if needed
               
   delete real_path;
-  //watch_entry(&new_file,B_WATCH_STAT);
 }
 
 //Local filesystem stuff
