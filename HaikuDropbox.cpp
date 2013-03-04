@@ -433,9 +433,13 @@ parse_command(BString command)
   else if(command.Compare("REMOVE ",7) == 0)
   {
     BString path;
-    command.CopyInto(path,7,command.FindLast(" ") - 7);
-    printf("Remove whatever is at |%s|\n", path.String());
-    //TODO: actually remove it...
+    command.CopyInto(path,7,command.FindFirst("\n") - 7);
+    const char * pathstr = db_to_local_filepath(path.String()).String();
+    printf("Remove whatever is at |%s|\n", pathstr);
+    BEntry entry = BEntry(pathstr);
+    status_t err = entry.Remove();
+    if(err != B_OK)
+      printf("Removal error: %s\n", strerror(err));
   }
   else
   {
