@@ -11,7 +11,8 @@
 
 const char * local_path_string = "/boot/home/Dropbox/";
 const char * local_path_string_noslash = "/boot/home/Dropbox";
-
+const int32 MY_DELTA_CONST = 'DBDL';
+const bigtime_t HOW_OFTEN_TO_POLL = 10000000;
 // String modification helper functions
 
 /*
@@ -487,6 +488,9 @@ App::App(void)
   this->recursive_watch(&dir);
 
   printf("Done watching and tracking all children of ~/Dropbox.\n");
+  BMessage msg = BMessage(MY_DELTA_CONST);
+  bigtime_t microseconds = HOW_OFTEN_TO_POLL;
+  this->msg_runner = new BMessageRunner(be_app_messenger, msg, microseconds, -1);
 }
 
 /*
@@ -500,6 +504,10 @@ App::MessageReceived(BMessage *msg)
 {
   switch(msg->what)
   {
+    case MY_DELTA_CONST:
+    {
+      printf("Pulling changes from Dropbox\n");
+    }
     case B_NODE_MONITOR:
     {
       printf("Received Node Monitor Alert\n");
