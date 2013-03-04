@@ -500,7 +500,7 @@ App::MessageReceived(BMessage *msg)
 {
   switch(msg->what)
   {
-    case B_NODE_MONITOR: //TODO: Refactor cases out into own functions
+    case B_NODE_MONITOR:
     {
       printf("Received Node Monitor Alert\n");
       status_t err;
@@ -543,10 +543,18 @@ App::MessageReceived(BMessage *msg)
               printf("path:|%s|\nparent_rev:|%s|\n",real_path->String(),parent_rev->String());
 
               BNode node = BNode(&new_file);
-              // set parent_rev attr
               set_parent_rev(&node,parent_rev);
               delete parent_rev;
-              //TODO:mv file if needed
+              BPath new_path = BPath(db_to_local_filepath(real_path->String()).String());
+
+              printf("Should I move %s to %s?\n", path.Path(), new_path.Path());
+              if(strcmp(new_path.Leaf(),path.Leaf()) != 0)
+              {
+                printf("moving %s to %s\n", path.Leaf(), new_path.Leaf());
+                BEntry entry = BEntry(path.Path()); //entry for local path
+                status_t err = entry.Rename(new_path.Leaf(),true);
+                if(err != B_OK) printf("error moving: %s\n",strerror(err));
+              }
               
               delete real_path;
               watch_entry(&new_file,B_WATCH_STAT);
