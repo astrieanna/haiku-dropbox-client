@@ -329,6 +329,39 @@ App::recursive_watch(BDirectory *dir)
   }
 }
 
+void
+rm_rf(BDirectory *dir)
+{
+  status_t err;
+  BEntry entry;
+  err = dir->GetNextEntry(&entry);
+  while(err==B_OK)
+  {
+    BFile file = BFile(&entry, B_READ_ONLY);
+    if(file.IsDirectory())
+    {
+      BDirectory ndir = BDirectory(&entry);
+      rm_rf(&ndir);
+    }
+
+    err = entry.Remove();
+    if(err != B_OK)
+    {
+      BPath path;
+      entry.GetPath(&path);
+      printf("Remove Error: %s on %s\n",strerror(err),path.Path());
+      //what to do if I can't remove something?
+    }
+
+    err = dir->GetNextEntry(&entry);
+  }
+  err = dir->GetEntry(&entry);
+  err = entry.Remove();
+  if(err != B_OK)
+    printf("Folder Removal Error: %s\n", strerror(err));
+}
+
+
 int32
 App::find_nref_in_tracked_files(node_ref target)
 {
@@ -357,10 +390,9 @@ parse_command(BString command)
   if(command.Compare("RESET\n") == 0)
   {
     printf("Burn Everything. 8D\n");
-    BEntry entry = BEntry(local_path_string);
-    int32 err = entry.Remove();
-    printf("Error: %s\n",strerror(err));
-    BString str = BString(local_path_string);
+    BDirectory dir = BDirectory(local_path_string);
+    rm_rf(&dir);
+    BString str = BString("/"); //create_local_path wants a remote path 
     create_local_directory(&str);
   }
   else if(command.Compare("FILE ",5) == 0)
