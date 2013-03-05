@@ -397,7 +397,6 @@ App::find_nref_in_tracked_files(node_ref target)
 
 
 // Act on Deltas
-// TODO: consider moving some cases into separate functions
 int
 parse_command(BString command)
 {
@@ -446,6 +445,8 @@ parse_command(BString command)
   }
   else if(command.Compare("REMOVE ",7) == 0)
   {
+    //TODO: deal with Dropbox file paths being case-insensitive
+    //which here means all lower case
     BString path;
     command.CopyInto(path,7,command.FindFirst("\n") - 7);
     const char * pathstr = db_to_local_filepath(path.String()).String();
