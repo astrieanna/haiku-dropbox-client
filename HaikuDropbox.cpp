@@ -13,6 +13,7 @@ const char * local_path_string = "/boot/home/Dropbox/";
 const char * local_path_string_noslash = "/boot/home/Dropbox";
 const int32 MY_DELTA_CONST = 'DBDL';
 const bigtime_t HOW_OFTEN_TO_POLL = 10000000;
+
 // String modification helper functions
 
 /*
@@ -450,14 +451,9 @@ parse_command(BString command)
   return B_OK;
 }
 
-/*
-* Sets up the Node Monitoring for Dropbox folder and contents
-* and creates data structure for determining which files are deleted or edited
-*/
-App::App(void)
-  : BApplication("application/x-vnd.lh-MyDropboxClient")
+void
+pull_and_apply_deltas()
 {
-  //ask Dropbox for deltas!
   char *argv[1];
   argv[0] = "db_delta.py";
   BString *delta_commands = run_python_script(argv,1);
@@ -469,6 +465,15 @@ App::App(void)
     if(x != B_OK)
       break;
   }
+}
+/*
+* Sets up the Node Monitoring for Dropbox folder and contents
+* and creates data structure for determining which files are deleted or edited
+*/
+App::App(void)
+  : BApplication("application/x-vnd.lh-MyDropboxClient")
+{
+  pull_and_apply_deltas();
   printf("Done pulling changes, now to start tracking\n");
 
   //start watching ~/Dropbox folder contents (create, delete, move)
@@ -507,6 +512,13 @@ App::MessageReceived(BMessage *msg)
     case MY_DELTA_CONST:
     {
       printf("Pulling changes from Dropbox\n");
+      status_t err = stop_watching(be_app_messenger);
+      if(err != B_OK) printf("stop_watch error: %s\n",strerror(err));
+
+      pull_and_apply_deltas();
+
+      BDirectory dir = BDirectory(local_path_string);
+      this->recursive_watch(&dir);
     }
     case B_NODE_MONITOR:
     {
