@@ -482,7 +482,7 @@ App::App(void)
   status_t err;
   if(dir.InitCheck() == B_OK){
     dir.GetNodeRef(&nref);
-    err = watch_node(&nref, B_WATCH_DIRECTORY, BMessenger(this));
+    err = watch_node(&nref, B_WATCH_DIRECTORY, be_app_messenger);
     if(err != B_OK)
       printf("Watch Node: Not OK\n");
   }
@@ -519,6 +519,7 @@ App::MessageReceived(BMessage *msg)
 
       BDirectory dir = BDirectory(local_path_string);
       this->recursive_watch(&dir);
+      break;
     }
     case B_NODE_MONITOR:
     {
