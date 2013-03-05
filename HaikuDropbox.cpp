@@ -253,8 +253,20 @@ update_file_in_dropbox(const char * filepath, const char *parent_rev)
   set_parent_rev(&node,new_parent_rev);
   delete new_parent_rev;
 
-  //TODO:mv file if needed
-              
+  BEntry entry = BEntry(filepath);
+  BPath old_path;
+  entry.GetPath(&old_path);
+
+  BPath new_path = BPath(db_to_local_filepath(real_path->String()).String());
+
+  printf("Should I move %s to %s?\n", old_path.Path(), new_path.Path());
+  if(strcmp(new_path.Leaf(),old_path.Leaf()) != 0)
+  {
+    printf("moving %s to %s\n", old_path.Leaf(), new_path.Leaf());
+    BEntry entry = BEntry(old_path.Path()); //entry for local path
+    status_t err = entry.Rename(new_path.Leaf(),true);
+    if(err != B_OK) printf("error moving: %s\n",strerror(err));
+  }
   delete real_path;
 }
 
