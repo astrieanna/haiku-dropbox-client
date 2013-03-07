@@ -55,6 +55,12 @@ get_next_line(BString *src, BString *dest)
   return B_OK;
 }
 
+/*
+* Runs a python script given the name and args
+*
+* Takes an array of strings and its length.
+* The strings must be null terminated.
+*/
 BString *
 run_python_script(char * argv[],int length)
 {
@@ -162,6 +168,10 @@ add_folder_to_dropbox(const char * filepath)
   run_python_script(argv,2);
 }
 
+/*
+* For use with the return value of db_put.py
+*  Get the real Dropbox path of the pushed file.
+*/
 BString*
 parse_path(const BString *result)
 {
@@ -171,6 +181,10 @@ parse_path(const BString *result)
   return path;
 }
 
+/*
+* For use with the return value of db_put.py
+*  Get the parent_rev of the pushed file.
+*/
 BString*
 parse_parent_rev(const BString *result)
 {
@@ -181,6 +195,10 @@ parse_parent_rev(const BString *result)
   return parent_rev;
 }
 
+/*
+* Given the BNode of a local file,
+* return the parent_rev as stored in an attribute
+*/
 BString *
 get_parent_rev(BNode *node)
 {
@@ -192,6 +210,11 @@ get_parent_rev(BNode *node)
   return parent_rev;
 }
 
+/*
+* Store the parent_rev as an attribute on a local file
+* Takes the BNode representing the file
+* and a BString containing the parent_rev
+*/
 void
 set_parent_rev(BNode *node, const BString *rev)
 {
@@ -283,6 +306,11 @@ create_local_directory(BString *dropbox_path)
     delete local_path;
 }
 
+/*
+* Subscribe to Node Monitor alerts
+* Just wraps the watch_node function of the Node Monitor
+* (with the BMessenger being be_app_messenger)
+*/
 void
 watch_entry(const BEntry *entry, int flag)
 {
@@ -313,6 +341,14 @@ App::track_file(BEntry *new_file)
   this->tracked_filepaths.AddItem((void*)path);
 }
 
+/*
+* Given a directory, subscribe to Node Monitor
+* messages on it and all it's descendents.
+* For all directories, use B_WATCH_DIRECTORY.
+* For all file, use B_WATCH_STAT.
+* It also watches the directory itself
+* with B_WATCH_DIRECOTRY.
+*/
 void
 App::recursive_watch(BDirectory *dir)
 {
@@ -343,6 +379,12 @@ App::recursive_watch(BDirectory *dir)
   }
 }
 
+/*
+* Given a local directory, do the equivalent of `rm -rf`
+* on it, but using the actual filesystem API.
+* You can't just use dir->Remove() because that
+* gives an error if the directory is not empty.
+*/
 void
 rm_rf(BDirectory *dir)
 {
@@ -375,7 +417,10 @@ rm_rf(BDirectory *dir)
     printf("Folder Removal Error: %s\n", strerror(err));
 }
 
-
+/*
+* Find the index of the target in the tracked_files list.
+* Returns -1 if target is not in the list.
+*/
 int32
 App::find_nref_in_tracked_files(node_ref target)
 {
@@ -397,6 +442,11 @@ App::find_nref_in_tracked_files(node_ref target)
 
 
 // Act on Deltas
+/*
+* Given a single line of the output of db_delta.py
+* Figures out what to do and does it.
+* (adds and removes files and directories)
+*/
 int
 parse_command(BString command)
 {
@@ -464,6 +514,11 @@ parse_command(BString command)
   return B_OK;
 }
 
+/*
+* wrapper for calling db_deltas.py
+* and then running parse_command on each line
+* of the output.
+*/
 void
 pull_and_apply_deltas()
 {
@@ -479,6 +534,7 @@ pull_and_apply_deltas()
       break;
   }
 }
+
 /*
 * Sets up the Node Monitoring for Dropbox folder and contents
 * and creates data structure for determining which files are deleted or edited
@@ -537,6 +593,7 @@ App::MessageReceived(BMessage *msg)
     case B_NODE_MONITOR:
     {
       printf("Received Node Monitor Alert\n");
+      msg->PrintToStream();
       status_t err;
       int32 opcode;
       err = msg->FindInt32("opcode",&opcode);
@@ -581,7 +638,6 @@ App::MessageReceived(BMessage *msg)
               delete parent_rev;
               BPath new_path = BPath(db_to_local_filepath(real_path->String()).String());
 
-              printf("Should I move %s to %s?\n", path.Path(), new_path.Path());
               if(strcmp(new_path.Leaf(),path.Leaf()) != 0)
               {
                 printf("moving %s to %s\n", path.Leaf(), new_path.Leaf());
@@ -598,7 +654,6 @@ App::MessageReceived(BMessage *msg)
           case B_ENTRY_MOVED:
           {
             printf("MOVED FILE\n");
-            msg->PrintToStream();
             entry_ref eref;
             BDirectory from_dir, to_dir;
             node_ref from_ref,to_ref,nref;
@@ -626,15 +681,14 @@ App::MessageReceived(BMessage *msg)
             BEntry test = BEntry("/boot/home/Dropbox/hi");
             BDirectory dropbox_local = BDirectory(local_path_string);
             bool into_dropbox = dropbox_local.Contains(&dest_entry);
-            printf("into_dropbox: %d\n",into_dropbox);
             int32 index = this->find_nref_in_tracked_files(nref);
             if((index >= 0) && into_dropbox)
             {
-              //moving within dropbox
+              printf("moving within dropbox\n");
               BPath *old_path = (BPath*)this->tracked_filepaths.ItemAt(index);
               BPath new_path;
               dest_entry.GetPath(&new_path);
-              //get_or_put("db_mv.py",local_to_db_filepath(old_path->Path()),local_to_db_filepath(new_path.Path()));
+
               char *argv[3];
               argv[0] = "db_mv.py";
               BString opath = local_to_db_filepath(old_path->Path());
@@ -647,13 +701,10 @@ App::MessageReceived(BMessage *msg)
               argv[2] = not_const_n;
               run_python_script(argv,3);
 
-              printf("moved the file on remote :)\n");
-
               old_path->SetTo(&dest_entry);
             }
             else if(index >= 0)
             {
-              //moving out of dropbox
               printf("moving the file out of dropbox\n");
               BPath *old_path = (BPath*)this->tracked_filepaths.ItemAt(index);
               delete_file_on_dropbox(old_path->Path());
@@ -662,7 +713,6 @@ App::MessageReceived(BMessage *msg)
             }
             else if(into_dropbox)
             {
-              //moving into dropbox
               printf("moving file into dropbox\n");
               BPath new_path;
               dest_entry.GetPath(&new_path);
@@ -683,11 +733,9 @@ App::MessageReceived(BMessage *msg)
             }
             else
             {
-              //why did I get this message?
               printf("moving unrelated file...?\n");
             }
 
-            printf("moving file of name %s\n",name);
             break;
           }
           case B_ENTRY_REMOVED:
@@ -726,7 +774,6 @@ App::MessageReceived(BMessage *msg)
             {
               BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
               BNode node = BNode(path->Path());
-              //node.ReadAttr("parent_rev",B_STRING_TYPE, 0, (void*)parent_rev, 11);
               BString * rev = get_parent_rev(&node);
               printf("parent_rev:|%s|\n",rev->String());
               
