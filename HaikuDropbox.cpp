@@ -576,6 +576,7 @@ App::App(void)
 void
 App::MessageReceived(BMessage *msg)
 {
+  printf("message received:\n");
   switch(msg->what)
   {
     case MY_DELTA_CONST:
@@ -604,6 +605,7 @@ App::MessageReceived(BMessage *msg)
         {
           case B_ENTRY_CREATED:
           {
+            printf("CREATED FILE\n");
             entry_ref ref;
             BPath path;
             const char * name;
