@@ -1,4 +1,4 @@
-jinclude <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <errno.h>
@@ -448,17 +448,18 @@ App::find_nref_in_tracked_files(node_ref target)
 * (adds and removes files and directories)
 */
 int
-parse_command(BString command)
+App::parse_command(BString command)
 {
   if(command.Compare("RESET\n") == 0)
   {
     printf("Burn Everything. 8D\n");
-    //TODO stop watching directory
+    status_t err = stop_watching(be_app_messenger);
+    if(err != B_OK) printf("stop_watching error: %s\n",strerror(err));
     BDirectory dir = BDirectory(local_path_string);
     rm_rf(&dir);
     BString str = BString("/"); //create_local_path wants a remote path 
     create_local_directory(&str);
-    //TODO start watching directory
+    this->recursive_watch(&dir);
   }
   else if(command.Compare("FILE ",5) == 0)
   {
@@ -530,7 +531,7 @@ parse_command(BString command)
 * of the output.
 */
 void
-pull_and_apply_deltas()
+App::pull_and_apply_deltas()
 {
   char *argv[1];
   argv[0] = "db_delta.py";
@@ -592,15 +593,7 @@ App::MessageReceived(BMessage *msg)
     case MY_DELTA_CONST:
     {
       printf("Pulling changes from Dropbox\n");
-      //TODO remove overall stop_watching because we're gonna do finer-grained ones
-      status_t err = stop_watching(be_app_messenger);
-      if(err != B_OK) printf("stop_watch error: %s\n",strerror(err));
-
       pull_and_apply_deltas();
-
-      //TODO remove overal start_watching because we're going to do finer-grained stuff
-      BDirectory dir = BDirectory(local_path_string);
-      this->recursive_watch(&dir);
       break;
     }
     case B_NODE_MONITOR:
@@ -617,7 +610,7 @@ App::MessageReceived(BMessage *msg)
         {
           case B_ENTRY_CREATED:
           {
-            printf("CREATED FILE\n")n;
+            printf("CREATED FILE\n");
             entry_ref ref;
             BPath path;
             const char * name;

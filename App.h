@@ -20,6 +20,8 @@ private:
   int32 find_nref_in_tracked_files(node_ref target);
   void recursive_watch(BDirectory *dir);
   void track_file(BEntry *new_file);
+  int parse_command(BString command);
+  void pull_and_apply_deltas();
 };
 
 #endif
