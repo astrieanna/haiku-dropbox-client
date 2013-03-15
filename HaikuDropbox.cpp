@@ -1,4 +1,4 @@
-#include <stdio.h>
+jinclude <stdio.h>
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <errno.h>
@@ -453,10 +453,12 @@ parse_command(BString command)
   if(command.Compare("RESET\n") == 0)
   {
     printf("Burn Everything. 8D\n");
+    //TODO stop watching directory
     BDirectory dir = BDirectory(local_path_string);
     rm_rf(&dir);
     BString str = BString("/"); //create_local_path wants a remote path 
     create_local_directory(&str);
+    //TODO start watching directory
   }
   else if(command.Compare("FILE ",5) == 0)
   {
@@ -465,7 +467,9 @@ parse_command(BString command)
     command.CopyInto(path,5,last_space - 5);
 
     path.CopyInto(dirpath,0,path.FindLast("/"));
+    //TODO stop watching last existing dir
     create_local_directory(&dirpath);
+    //TODO start watching last pre-existing and all new dirs
 
     printf("create a file at |%s|\n",path.String());
     char *argv[3];
@@ -478,8 +482,10 @@ parse_command(BString command)
     strcpy(not_const2,tmp.String());
     argv[2] = not_const2;
 
+    //TODO stop watching last folder
     BString * b = run_python_script(argv,3);
     delete b;
+    //TODO start watching last folder and new file
     BString parent_rev;
     command.CopyInto(parent_rev,last_space + 1, command.CountChars() - (last_space+1));
     BNode node = BNode(db_to_local_filepath(path.String()).String());
@@ -491,7 +497,9 @@ parse_command(BString command)
     command.CopyInto(path,7,command.FindLast(" ") - 7);
 
     printf("create a folder at |%s|\n", path.String());
+    //TODO stop watching last existing folder in path
     create_local_directory(&path);
+    //TODO start watching last existing folder and all new dirs in path
   }
   else if(command.Compare("REMOVE ",7) == 0)
   {
@@ -502,7 +510,9 @@ parse_command(BString command)
     const char * pathstr = db_to_local_filepath(path.String()).String();
     printf("Remove whatever is at |%s|\n", pathstr);
     BEntry entry = BEntry(pathstr);
+    //TODO stop watching target file and containing folder
     status_t err = entry.Remove();
+    //TODO start watching containing folder again
     if(err != B_OK)
       printf("Removal error: %s\n", strerror(err));
   }
@@ -582,11 +592,13 @@ App::MessageReceived(BMessage *msg)
     case MY_DELTA_CONST:
     {
       printf("Pulling changes from Dropbox\n");
+      //TODO remove overall stop_watching because we're gonna do finer-grained ones
       status_t err = stop_watching(be_app_messenger);
       if(err != B_OK) printf("stop_watch error: %s\n",strerror(err));
 
       pull_and_apply_deltas();
 
+      //TODO remove overal start_watching because we're going to do finer-grained stuff
       BDirectory dir = BDirectory(local_path_string);
       this->recursive_watch(&dir);
       break;
@@ -605,7 +617,7 @@ App::MessageReceived(BMessage *msg)
         {
           case B_ENTRY_CREATED:
           {
-            printf("CREATED FILE\n");
+            printf("CREATED FILE\n")n;
             entry_ref ref;
             BPath path;
             const char * name;
