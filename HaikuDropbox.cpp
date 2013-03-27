@@ -203,9 +203,15 @@ BString *
 get_parent_rev(BNode *node)
 {
   int32 len;
-  node->ReadAttr("parent_rev_len",B_INT32_TYPE,0,(void*)&len,4);
+  ssize_t bytes = node->ReadAttr("parent_rev_len",B_INT32_TYPE,0,(void*)&len,4);
+  if(bytes != 4) {
+   printf("tried to read parent_rev_len, but only read %d bytes\n",bytes);
+   BString * empty = new BString();
+   return empty;
+  }
   char str[len];
-  node->ReadAttr("parent_rev",B_STRING_TYPE, 0, (void*)str, len);
+  bytes = node->ReadAttr("parent_rev",B_STRING_TYPE, 0, (void*)str, len);
+  if(bytes == 0) printf("tried and failed to read parent_rev");
   BString * parent_rev = new BString(str);
   return parent_rev;
 }
@@ -442,7 +448,12 @@ App::find_nref_in_tracked_files(node_ref target)
 
 bool
 check_exists(BString db_path) {
-
+  BString local_path = db_to_local_filepath(db_path);
+  BEntry entry = BEntry(local_path.String());
+  bool init = entry.InitCheck() == B_OK;
+  bool exists = entry.Exists();
+  printf("init:%d,exists:%d\n",init,exists);
+  return init && exists;
 }
 
 // Act on Deltas
@@ -501,20 +512,33 @@ App::parse_command(BString command)
     strcpy(not_const2,tmp.String());
     argv[2] = not_const2;
 
+    //stop watching the containing directory
     BEntry last_dir = BEntry(db_to_local_filepath(dirpath.String()).String());
     last_dir.GetNodeRef(&nref);
     err = watch_node(&nref,B_STOP_WATCHING, be_app_messenger);
 
+    //stop watching the file if it already exists
+    BEntry new_file = BEntry(db_to_local_filepath(path.String()).String());
+    if(new_file.InitCheck() == B_OK) {
+      new_file.GetNodeRef(&nref);
+      err = watch_node(&nref,B_STOP_WATCHING,be_app_messenger);
+    }
+
+    //create/update file
     //potential problem: takes awhile to do this step
     // having watching for dir turned off is risky.    
     BString * b = run_python_script(argv,3);
     delete b;
 
-    err = watch_node(&nref,B_WATCH_DIRECTORY, be_app_messenger);
-
+    //start watching the new/updated file
     BEntry new_file = BEntry(db_to_local_filepath(path.String()).String());
     new_file.GetNodeRef(&nref);
     err = watch_node(&nref,B_WATCH_STAT,be_app_messenger);
+
+    //start watching the containing folder
+    last_dir.GetNodeRef(&nref);
+    err = watch_node(&nref,B_WATCH_DIRECTORY, be_app_messenger);
+
 
     BString parent_rev;
     command.CopyInto(parent_rev,last_space + 1, command.CountChars() - (last_space+1));
@@ -556,8 +580,14 @@ App::parse_command(BString command)
     status_t err = watch_node(&nref,B_STOP_WATCHING,be_app_messenger);
 
     path.CopyInto(partial_path,0,path.FindLast("/"));
+    printf("partialpath:%s\n",partial_path.String());
     while(!check_exists(partial_path)) {
       partial_path = partial_path.Truncate(partial_path.FindLast("/"));
+      printf("partialpath:%s\n",partial_path.String());
+      if((partial_path.Compare("") == 0) || (partial_path.Compare("/")==0)) {
+        err = watch_node(&nref,B_WATCH_DIRECTORY,be_app_messenger);
+        return B_ERROR;
+      } 
     }
     BEntry preexisting_dir = BEntry(db_to_local_filepath(partial_path.String()).String());
     preexisting_dir.GetNodeRef(&nref);
@@ -591,13 +621,14 @@ App::pull_and_apply_deltas()
   argv[0] = "db_delta.py";
   BString *delta_commands = run_python_script(argv,1);
   BString line;
-  printf("*************RAN DELTA\n");
+  printf("*************RUNNING DELTA\n");
   while(get_next_line(delta_commands,&line) == B_OK)
   {
     int x = parse_command(line); 
     if(x != B_OK)
       break;
   }
+  printf("*************RAN DELTA\n");
 }
 
 /*
@@ -646,6 +677,7 @@ App::MessageReceived(BMessage *msg)
   {
     case MY_DELTA_CONST:
     {
+      msg->PrintToStream();
       printf("Pulling changes from Dropbox\n");
       pull_and_apply_deltas();
       break;
