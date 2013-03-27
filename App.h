@@ -16,6 +16,15 @@ public:
 private:
   BList tracked_files; // BFile*
   BList tracked_filepaths; //BPath*
+
+  //Lists for ignoring messages
+  BList removed_paths; //BPath*
+  bool ignore_removed(BPath *path);
+  BList edited_paths; //BPath*
+  bool ignore_edited(BPath *path);
+  BList new_paths; //BPath*
+  bool ignore_created(BPath *path);
+
   BMessageRunner *msg_runner;
   int32 find_nref_in_tracked_files(node_ref target);
   void recursive_watch(BDirectory *dir);

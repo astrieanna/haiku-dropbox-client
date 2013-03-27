@@ -456,6 +456,28 @@ check_exists(BString db_path) {
   return init && exists;
 }
 
+bool
+exists(BPath *path)
+{
+  BEntry entry = BEntry(path->Path());
+  return (entry.InitCheck() == B_OK) && entry.Exists();
+}
+
+BPath*
+find_existing_subpath(BPath *fullpath) {
+  if(exists(fullpath)) return new BPath(*fullpath);
+  BPath *current;
+  BPath previous = BPath(*fullpath);
+  previous.GetParent(current);
+  while(!(exists(current))) {
+    current->GetParent(&previous);
+    BPath *tmp = &previous;
+    previous = *current;
+    current = tmp;
+  }
+  return new BPath(previous);
+}
+
 // Act on Deltas
 /*
 * Given a single line of the output of db_delta.py
@@ -479,19 +501,25 @@ App::parse_command(BString command)
     create_local_directory(&str);
 
     this->recursive_watch(&dir);
-    //TODO - remove messages to ignore?
   }
   else if(command.Compare("FILE ",5) == 0)
   {
     BString path, dirpath, partial_path;
+    BPath *bpath;
     int32 last_space = command.FindLast(" ");
     command.CopyInto(path,5,last_space - 5);
 
     path.CopyInto(dirpath,0,path.FindLast("/"));
 
     create_local_directory(&dirpath);
-
     //TODO fix watching new dirs
+    bpath = new BPath(db_to_local_filepath(path.String()).String());
+    BEntry new_file = BEntry(bpath->Path());
+    if(new_file.InitCheck() && new_file.Exists()) {
+      this->new_paths.AddItem((void*)bpath);
+    } else {
+      this->edited_paths.AddItem((void*)bpath);
+    }
 
     printf("create a file at |%s|\n",path.String());
     char *argv[3];
@@ -512,7 +540,7 @@ App::parse_command(BString command)
 
     //start watching the new/updated file
     node_ref nref;
-    BEntry new_file = BEntry(db_to_local_filepath(path.String()).String());
+    new_file = BEntry(db_to_local_filepath(path.String()).String());
     new_file.GetNodeRef(&nref);
     status_t err = watch_node(&nref,B_WATCH_STAT,be_app_messenger);
 
@@ -526,18 +554,31 @@ App::parse_command(BString command)
     BString path;
     command.CopyInto(path,7,command.FindLast(" ") - 7);
 
-    printf("create a folder at |%s|\n", path.String());
+    //ignore the creation message
+    BPath bpath = BPath(db_to_local_filepath(path.String()).String());
+    BPath *actually_exists = find_existing_subpath(&bpath);
+    this->new_paths.AddItem((void*)actually_exists);
 
+    //create all nescessary dirs in path
+    printf("create a folder at |%s|\n", path.String());
     create_local_directory(&path);
-    //TODO start watching new dir?
+
+    //start watching the new dir
+    BDirectory existing_dir = BDirectory(actually_exists->Path());
+    recursive_watch(&existing_dir);
   }
   else if(command.Compare("REMOVE ",7) == 0)
   {
     //TODO: deal with Dropbox file paths being case-insensitive
     //which here means all lower case
-    BString path,partial_path;
+    BString path;
     command.CopyInto(path,7,command.FindFirst("\n") - 7);
+
     const char * pathstr = db_to_local_filepath(path.String()).String();
+    BPath *bpath = new BPath(pathstr);
+    //TODO: check if it exists...
+    this->removed_paths.AddItem((void*)bpath);
+
     printf("Remove whatever is at |%s|\n", pathstr);
 
     BEntry entry = BEntry(pathstr);
@@ -607,6 +648,53 @@ App::App(void)
   this->msg_runner = new BMessageRunner(be_app_messenger, msg, microseconds, -1);
 }
 
+bool
+App::ignore_removed(BPath *path)
+{
+  printf("In ignore_removed\n");
+  //find matching path object in list (by value comparison)
+  for(int32 i = 0; i < this->removed_paths.CountItems(); i++) {
+    BPath *current = (BPath*)this->removed_paths.ItemAt(i);
+    printf("removed_paths[%d]=%s\n",i,current->Path());
+    if( *current == *path) {
+      BPath *p = (BPath*)this->removed_paths.RemoveItem(i);
+      delete p;
+      printf("\treturning true\n");
+      return true;
+    }
+  }
+  printf("\treturning false\n");
+  return false;
+}
+
+bool
+App::ignore_created(BPath *path)
+{
+  for(int32 i = 0; i < this->new_paths.CountItems(); i++) {
+    BPath *current = (BPath*)this->new_paths.ItemAt(i);
+    if( *current == *path) {
+      BPath *p = (BPath*)this->new_paths.RemoveItem(i);
+      delete p;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool
+App::ignore_edited(BPath *path)
+{
+  for(int32 i = 0; i < this->edited_paths.CountItems(); i++) {
+    BPath *current = (BPath*)this->edited_paths.ItemAt(i);
+    if( *current == *path) {
+      BPath *p = (BPath*)this->edited_paths.RemoveItem(i);
+      delete p;
+      return true;
+    }
+  }
+  return false;
+}
+
 /*
 * Message Handling Function
 * If it's a node monitor message,
@@ -653,6 +741,11 @@ App::MessageReceived(BMessage *msg)
 
             BEntry new_file = BEntry(&ref);
             new_file.GetPath(&path);
+
+
+            //if we said to ignore a `NEW` msg from the path, then ignore it
+            if(this->ignore_created(&path)) return;
+
             this->track_file(&new_file);
 
             if(new_file.IsDirectory())
@@ -787,6 +880,8 @@ App::MessageReceived(BMessage *msg)
             {
               BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
               printf("local file %s deleted\n",path->Path());
+              
+              if(ignore_removed(path)) return;
 
               delete_file_on_dropbox(path->Path());
               this->tracked_files.RemoveItem(index);
@@ -810,6 +905,7 @@ App::MessageReceived(BMessage *msg)
             if(index >= 0)
             {
               BPath *path = (BPath*)this->tracked_filepaths.ItemAt(index);
+              if(ignore_edited(path)) return;
               BNode node = BNode(path->Path());
               BString * rev = get_parent_rev(&node);
               printf("parent_rev:|%s|\n",rev->String());
