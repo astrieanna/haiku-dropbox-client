@@ -479,6 +479,7 @@ App::parse_command(BString command)
     create_local_directory(&str);
 
     this->recursive_watch(&dir);
+    //TODO - remove messages to ignore?
   }
   else if(command.Compare("FILE ",5) == 0)
   {
@@ -487,19 +488,10 @@ App::parse_command(BString command)
     command.CopyInto(path,5,last_space - 5);
 
     path.CopyInto(dirpath,0,path.FindLast("/"));
-    path.CopyInto(partial_path,0,path.FindLast("/"));
-    while(!check_exists(partial_path)) {
-      partial_path = partial_path.Truncate(partial_path.FindLast("/"));
-    }
-    BEntry preexisting_dir = BEntry(db_to_local_filepath(partial_path.String()).String());
-    node_ref nref;
-    preexisting_dir.GetNodeRef(&nref);
-    status_t err = watch_node(&nref,B_STOP_WATCHING,be_app_messenger);
 
     create_local_directory(&dirpath);
 
-    BDirectory full_path = BDirectory(&preexisting_dir);
-    this->recursive_watch(&full_path);
+    //TODO fix watching new dirs
 
     printf("create a file at |%s|\n",path.String());
     char *argv[3];
@@ -512,18 +504,6 @@ App::parse_command(BString command)
     strcpy(not_const2,tmp.String());
     argv[2] = not_const2;
 
-    //stop watching the containing directory
-    BEntry last_dir = BEntry(db_to_local_filepath(dirpath.String()).String());
-    last_dir.GetNodeRef(&nref);
-    err = watch_node(&nref,B_STOP_WATCHING, be_app_messenger);
-
-    //stop watching the file if it already exists
-    BEntry new_file = BEntry(db_to_local_filepath(path.String()).String());
-    if(new_file.InitCheck() == B_OK) {
-      new_file.GetNodeRef(&nref);
-      err = watch_node(&nref,B_STOP_WATCHING,be_app_messenger);
-    }
-
     //create/update file
     //potential problem: takes awhile to do this step
     // having watching for dir turned off is risky.    
@@ -531,14 +511,10 @@ App::parse_command(BString command)
     delete b;
 
     //start watching the new/updated file
+    node_ref nref;
     BEntry new_file = BEntry(db_to_local_filepath(path.String()).String());
     new_file.GetNodeRef(&nref);
-    err = watch_node(&nref,B_WATCH_STAT,be_app_messenger);
-
-    //start watching the containing folder
-    last_dir.GetNodeRef(&nref);
-    err = watch_node(&nref,B_WATCH_DIRECTORY, be_app_messenger);
-
+    status_t err = watch_node(&nref,B_WATCH_STAT,be_app_messenger);
 
     BString parent_rev;
     command.CopyInto(parent_rev,last_space + 1, command.CountChars() - (last_space+1));
@@ -547,24 +523,13 @@ App::parse_command(BString command)
   }
   else if(command.Compare("FOLDER ",7) == 0)
   {
-    BString path,partial_path;
+    BString path;
     command.CopyInto(path,7,command.FindLast(" ") - 7);
 
     printf("create a folder at |%s|\n", path.String());
 
-    path.CopyInto(partial_path,0,path.FindLast("/"));
-    while(!check_exists(partial_path)) {
-      partial_path = partial_path.Truncate(partial_path.FindLast("/"));
-    }
-    BEntry preexisting_dir = BEntry(db_to_local_filepath(partial_path.String()).String());
-    node_ref nref;
-    preexisting_dir.GetNodeRef(&nref);
-    status_t err = watch_node(&nref,B_STOP_WATCHING,be_app_messenger);
-
     create_local_directory(&path);
-
-    BDirectory full_path = BDirectory(&preexisting_dir);
-    this->recursive_watch(&full_path);
+    //TODO start watching new dir?
   }
   else if(command.Compare("REMOVE ",7) == 0)
   {
@@ -574,30 +539,9 @@ App::parse_command(BString command)
     command.CopyInto(path,7,command.FindFirst("\n") - 7);
     const char * pathstr = db_to_local_filepath(path.String()).String();
     printf("Remove whatever is at |%s|\n", pathstr);
+
     BEntry entry = BEntry(pathstr);
-    node_ref nref;
-    entry.GetNodeRef(&nref);
-    status_t err = watch_node(&nref,B_STOP_WATCHING,be_app_messenger);
-
-    path.CopyInto(partial_path,0,path.FindLast("/"));
-    printf("partialpath:%s\n",partial_path.String());
-    while(!check_exists(partial_path)) {
-      partial_path = partial_path.Truncate(partial_path.FindLast("/"));
-      printf("partialpath:%s\n",partial_path.String());
-      if((partial_path.Compare("") == 0) || (partial_path.Compare("/")==0)) {
-        err = watch_node(&nref,B_WATCH_DIRECTORY,be_app_messenger);
-        return B_ERROR;
-      } 
-    }
-    BEntry preexisting_dir = BEntry(db_to_local_filepath(partial_path.String()).String());
-    preexisting_dir.GetNodeRef(&nref);
-    err = watch_node(&nref,B_STOP_WATCHING,be_app_messenger);
-
-    err = entry.Remove();
-
-    BDirectory full_path = BDirectory(&preexisting_dir);
-    this->recursive_watch(&full_path);
-
+    status_t err = entry.Remove();
     if(err != B_OK)
       printf("Removal error: %s\n", strerror(err));
   }
