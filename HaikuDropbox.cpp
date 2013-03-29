@@ -103,7 +103,6 @@ run_python_script(char * argv[],int length)
   }
   printf("output:|%s|\n",output->String());
   return output;
-
 }
 
 // Talk to Dropbox
@@ -147,7 +146,9 @@ add_file_to_dropbox(const char * filepath)
   strcpy(not_const2,filepath);
   argv[1] = not_const2;
 
-  return run_python_script(argv,3);
+  BString *result = run_python_script(argv,3);
+  result->RemoveAll("\n"); //trim trailing new lines
+  return result;
 }
 
 /*
