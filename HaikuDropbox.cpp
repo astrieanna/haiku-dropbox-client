@@ -488,7 +488,8 @@ find_existing_subpath(BPath *fullpath) {
 int
 App::parse_command(BString command)
 {
-  if(command.Compare("RESET\n") == 0)
+  command.RemoveAll("\n"); //remove trailing whitespace
+  if(command.Compare("RESET") == 0)
   {
     printf("Burn Everything. 8D\n");
 
@@ -573,7 +574,7 @@ App::parse_command(BString command)
     //TODO: deal with Dropbox file paths being case-insensitive
     //which here means all lower case
     BString path;
-    command.CopyInto(path,7,command.FindFirst("\n") - 7);
+    command.CopyInto(path,7,command.Length() - 7);
 
     const char * pathstr = db_to_local_filepath(path.String()).String();
     BPath *bpath = new BPath(pathstr);
@@ -729,7 +730,7 @@ App::MessageReceived(BMessage *msg)
         {
           case B_ENTRY_CREATED:
           {
-            printf("CREATED FILE\n");
+            printf("CREATED NEW FILE\n");
             entry_ref ref;
             BPath path;
             const char * name;
