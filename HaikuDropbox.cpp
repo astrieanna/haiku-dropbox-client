@@ -177,7 +177,13 @@ BString*
 parse_path(const BString *result)
 {
   BString *path = new BString;
-  int32 last_space_in_first_line = result->FindLast(' ',result->FindFirst('\n'));
+  int32 eol = result->FindFirst('\n');
+  int32 last_space_in_first_line;
+  if(eol != B_ERROR){
+    last_space_in_first_line = result->FindLast(' ',eol);
+  } else {
+    last_space_in_first_line = result->FindLast(' ');
+  }
   result->CopyInto(*path,0,last_space_in_first_line);
   return path;
 }
@@ -191,7 +197,12 @@ parse_parent_rev(const BString *result)
 {
   BString *parent_rev = new BString;
   int32 eol = result->FindFirst('\n');
-  int32 last_space_in_first_line = result->FindLast(' ',eol);
+  int32 last_space_in_first_line;
+  if(eol != B_ERROR){
+    last_space_in_first_line = result->FindLast(' ',eol);
+  } else {
+    last_space_in_first_line = result->FindLast(' ');
+  }
   result->CopyInto(*parent_rev,last_space_in_first_line + 1, eol - last_space_in_first_line - 1);
   return parent_rev;
 }
@@ -707,11 +718,11 @@ void
 App::MessageReceived(BMessage *msg)
 {
   printf("message received:\n");
+  msg->PrintToStream();
   switch(msg->what)
   {
     case MY_DELTA_CONST:
     {
-      msg->PrintToStream();
       printf("Pulling changes from Dropbox\n");
       pull_and_apply_deltas();
       break;
@@ -719,13 +730,11 @@ App::MessageReceived(BMessage *msg)
     case B_NODE_MONITOR:
     {
       printf("Received Node Monitor Alert\n");
-      msg->PrintToStream();
       status_t err;
       int32 opcode;
       err = msg->FindInt32("opcode",&opcode);
       if(err == B_OK)
       {
-        printf("what:%d\topcode:%d\n",msg->what, opcode);
         switch(opcode)
         {
           case B_ENTRY_CREATED:
@@ -930,7 +939,6 @@ App::MessageReceived(BMessage *msg)
     }
     default:
     {
-      printf("default msg\n");
       BApplication::MessageReceived(msg);
       break;
     }
