@@ -13,7 +13,7 @@ time.sleep(2)
 
 #tell db_put what to say
 putlines = open("lines_db_put.txt",'w+')
-putlines.write("success")
+putlines.write("success AAAAA")
 putlines.close()
 
 #create file
